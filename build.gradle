@@ -1,9 +1,15 @@
+import static org.gradle.api.JavaVersion.VERSION_11
+
 buildscript {
     ext {
+        artifactoryContextUrl='https://software.r3.com/artifactory'
+        cordaArtifactoryUsername = System.getenv('CORDA_ARTIFACTORY_USERNAME') ?: System.getProperty('corda.artifactory.username')
+        cordaArtifactoryPassword = System.getenv('CORDA_ARTIFACTORY_PASSWORD') ?: System.getProperty('corda.artifactory.password')
         corda_release_group = 'net.corda'
-        corda_release_version = '4.3'
-        corda_gradle_plugins_version = '4.0.42'
-        kotlin_version = '1.2.71'
+        corda_release_version = '1.0.1620649485675-rc'
+        legacy_corda_release_version = '4.3'
+        corda_gradle_plugins_version = '5.0.8'
+        kotlin_version = '1.4.21'
         junit_version = '4.12'
         quasar_version = '0.7.10'
         slf4j_version = '1.7.25'
@@ -12,7 +18,8 @@ buildscript {
         tokens_release_group='com.r3.corda.lib.tokens'
         tokens_sdk_version='1.0'
         confidential_id_release_group = "com.r3.corda.lib.ci"
-        confidential_id_release_version = "1.0"
+        confidential_id_release_version = "2.0"
+        jfrogArtifactoryPluginVersion='4.18.0'
     }
 
     repositories {
@@ -37,38 +44,71 @@ buildscript {
 }
 
 plugins {
-    id "com.jfrog.artifactory" version "4.7.5"
+    id "com.jfrog.artifactory" version "$jfrogArtifactoryPluginVersion"
 }
 
 allprojects {
     version "$confidential_id_release_version"
     group "$confidential_id_release_group"
-    apply plugin: 'kotlin'
+
+    configurations.all {
+        resolutionStrategy {
+            // Force dependencies to use the same version of Kotlin
+            force "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
+            force "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlin_version"
+            force "org.jetbrains.kotlin:kotlin-stdlib-jre8:$kotlin_version"
+            force "org.jetbrains.kotlin:kotlin-stdlib-jre7:$kotlin_version"
+            force "org.jetbrains.kotlin:kotlin-reflect:$kotlin_version"
+
+            cacheChangingModulesFor 0, 'seconds'
+        }
+    }
 
     repositories {
         mavenLocal()
         jcenter()
         mavenCentral()
-        maven { url 'https://software.r3.com/artifactory/corda-lib' }
-        maven { url 'https://software.r3.com/artifactory/corda-lib-dev' }
-        maven { url 'https://software.r3.com/artifactory/corda-releases' }
-        maven { url "https://repo.gradle.org/gradle/libs-releases-local" }
         maven { url 'https://jitpack.io' }
+        maven { url "http://ci-artifactory.corda.r3cev.com/artifactory/corda-dev" }
+        maven { url "http://ci-artifactory.corda.r3cev.com/artifactory/corda-releases" }
+        maven { url "http://ci-artifactory.corda.r3cev.com/artifactory/corda-lib" }
+        maven { url "http://ci-artifactory.corda.r3cev.com/artifactory/corda-lib-dev" }
+        maven { url "https://repo.gradle.org/gradle/libs-releases-local/" }
+        //needed for C5 binaries
+        maven {
+            url = "$artifactoryContextUrl/corda-os-maven-unstable"
+            credentials {
+                username = cordaArtifactoryUsername
+                password = cordaArtifactoryPassword
+            }
+        }
+        maven {
+            url = "$artifactoryContextUrl/corda-dependencies"
+        }
     }
 
     tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile) {
         kotlinOptions {
-            languageVersion = "1.2"
-            apiVersion = "1.2"
-            jvmTarget = "1.8"
+            allWarningsAsErrors = true
+            languageVersion = "1.4"
+            apiVersion = "1.4"
+            jvmTarget = VERSION_11
             javaParameters = true   // Useful for reflection.
+            freeCompilerArgs += [
+                "-Xjvm-default=all",
+                // Prevent Kotlin from warning about kotlin.* classes inside the OSGi bundle.
+                "-Xskip-runtime-version-check",
+                "-java-parameters"
+            ]
         }
     }
 
-    jar {
-        // This makes the JAR's SHA-256 hash repeatable.
-        preserveFileTimestamps = false
-        reproducibleFileOrder = true
+    tasks.withType(Jar) {
+        jar {
+            // This makes the JAR's SHA-256 hash repeatable.
+            preserveFileTimestamps = false
+            reproducibleFileOrder = true
+        }
     }
 }
 
@@ -97,9 +137,8 @@ cordapp {
 
 dependencies {
     // Corda dependencies.
-    cordaCompile "$corda_release_group:corda-core:$corda_release_version"
+    cordaCompile "$corda_release_group:corda-application:$corda_release_version"
     cordaCompile "$corda_release_group:corda-node-api:$corda_release_version"
-    cordaRuntime "$corda_release_group:corda:$corda_release_version"
 
     // CorDapp dependencies.
     cordapp project(":workflows")
@@ -164,7 +203,7 @@ artifactory {
 }
 
 wrapper {
-    gradleVersion = "4.10.2"
+    gradleVersion = "6.8.3"
     distributionType = Wrapper.DistributionType.ALL
 }
 

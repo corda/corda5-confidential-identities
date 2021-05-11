@@ -1,13 +1,13 @@
 package com.r3.corda.lib.ci.workflows
 
-import net.corda.core.CordaInternal
-import net.corda.core.crypto.SecureHash
-import net.corda.core.crypto.SignedData
-import net.corda.core.identity.Party
-import net.corda.core.internal.VisibleForTesting
-import net.corda.core.node.ServiceHub
-import net.corda.core.serialization.CordaSerializable
-import net.corda.core.serialization.serialize
+import net.corda.v5.application.crypto.SignedData
+import net.corda.v5.application.node.services.KeyManagementService
+import net.corda.v5.application.serialization.serialize
+import net.corda.v5.base.annotations.CordaInternal
+import net.corda.v5.base.annotations.CordaSerializable
+import net.corda.v5.base.annotations.VisibleForTesting
+import net.corda.v5.crypto.SecureHash
+import net.corda.v5.crypto.hash
 import java.security.PublicKey
 import java.security.SignatureException
 import java.util.*
@@ -22,35 +22,33 @@ typealias ChallengeResponse = SecureHash.SHA256
  * containing the new [PublicKey], signed data structure and additional [ChallengeResponse] parameter required for
  * verification by the counter-party.
  *
- * @param serviceHub The [ServiceHub] of the node which requests a new public key
  * @param challengeResponseParam The random number used to prevent replay attacks
  * @param uuid The external ID to be associated with the new [PublicKey]
  */
 @CordaInternal
 @VisibleForTesting
-fun ServiceHub.createSignedOwnershipClaimFromUUID(
-        challengeResponseParam: ChallengeResponse,
-        uuid: UUID
+fun KeyManagementService.createSignedOwnershipClaimFromUUID(
+    challengeResponseParam: ChallengeResponse,
+    uuid: UUID
 ): SignedKeyForAccount {
-    val newKey = this.keyManagementService.freshKey(uuid)
-    return this.concatChallengeResponseAndSign(challengeResponseParam, newKey)
+    val newKey = freshKey(uuid)
+    return concatChallengeResponseAndSign(challengeResponseParam, newKey)
 }
 
 /**
  * Returns the [SignedKeyForAccount] containing the known [PublicKey], signed data structure and additional
  * [ChallengeResponse] parameter required for verification by the counter-party.
  *
- * @param serviceHub The [ServiceHub] of the node which requests a new public key
  * @param challengeResponseParam The random number used to prevent replay attacks
  * @param knownKey The [PublicKey] to sign the challengeResponseId
  */
 @CordaInternal
 @VisibleForTesting
-fun ServiceHub.createSignedOwnershipClaimFromKnownKey(
-        challengeResponseParam: ChallengeResponse,
-        knownKey: PublicKey
+fun KeyManagementService.createSignedOwnershipClaimFromKnownKey(
+    challengeResponseParam: ChallengeResponse,
+    knownKey: PublicKey
 ): SignedKeyForAccount {
-    return this.concatChallengeResponseAndSign(challengeResponseParam, knownKey)
+    return concatChallengeResponseAndSign(challengeResponseParam, knownKey)
 }
 
 /**
@@ -58,14 +56,14 @@ fun ServiceHub.createSignedOwnershipClaimFromKnownKey(
  * the concatenated [ChallengeResponse] using the new [PublicKey]. The method returns the [SignedKeyForAccount] containing
  * the new [PublicKey], signed data structure and additional [ChallengeResponse] parameter.
  */
-private fun ServiceHub.concatChallengeResponseAndSign(
-        challengeResponseParam: ChallengeResponse,
-        key: PublicKey
+private fun KeyManagementService.concatChallengeResponseAndSign(
+    challengeResponseParam: ChallengeResponse,
+    key: PublicKey
 ): SignedKeyForAccount {
     // Introduce a second parameter to prevent signing over some malicious transaction ID which may be in the form of a SHA256 hash
     val additionalParameter = SecureHash.randomSHA256()
     val hashOfBothParameters = challengeResponseParam.hashConcat(additionalParameter)
-    val keySig = this.keyManagementService.sign(hashOfBothParameters.serialize().hash.bytes, key)
+    val keySig = sign(hashOfBothParameters.serialize().hash.bytes, key)
     // Sign the challengeResponse with the newly generated key
     val signedData = SignedData(hashOfBothParameters.serialize(), keySig)
     return SignedKeyForAccount(key, signedData, additionalParameter)
@@ -126,7 +124,7 @@ data class RequestFreshKey(val challengeResponseParam: ChallengeResponse) : Send
  */
 @CordaSerializable
 data class SignedKeyForAccount(
-        val publicKey: PublicKey,
-        val signedChallengeResponse: SignedData<ChallengeResponse>,
-        val additionalChallengeResponseParam: ChallengeResponse
+    val publicKey: PublicKey,
+    val signedChallengeResponse: SignedData<ChallengeResponse>,
+    val additionalChallengeResponseParam: ChallengeResponse
 )

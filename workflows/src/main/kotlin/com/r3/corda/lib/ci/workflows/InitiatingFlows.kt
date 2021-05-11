@@ -1,18 +1,26 @@
 package com.r3.corda.lib.ci.workflows
 
-import co.paralleluniverse.fibers.Suspendable
-import net.corda.core.flows.*
-import net.corda.core.identity.AbstractParty
-import net.corda.core.identity.AnonymousParty
-import net.corda.core.identity.Party
-import net.corda.core.node.services.KeyManagementService
-import net.corda.core.transactions.WireTransaction
+import net.corda.v5.application.flows.Flow
+import net.corda.v5.application.flows.FlowSession
+import net.corda.v5.application.flows.InitiatedBy
+import net.corda.v5.application.flows.InitiatingFlow
+import net.corda.v5.application.flows.StartableByRPC
+import net.corda.v5.application.flows.flowservices.FlowEngine
+import net.corda.v5.application.flows.flowservices.FlowMessaging
+import net.corda.v5.application.flows.flowservices.dependencies.CordaInject
+import net.corda.v5.application.identity.AbstractParty
+import net.corda.v5.application.identity.AnonymousParty
+import net.corda.v5.application.identity.Party
+import net.corda.v5.application.node.services.IdentityService
+import net.corda.v5.application.node.services.KeyManagementService
+import net.corda.v5.base.annotations.Suspendable
+import net.corda.v5.ledger.transactions.WireTransaction
 import java.security.PublicKey
 import java.util.*
 
 /**
- * This flow registers a mapping in the [net.corda.core.node.services.IdentityService] between a [PublicKey] and a
- * [Party]. It generate's a new key pair for a given [UUID] and register's the new key mapping.
+ * This flow registers a mapping in the [IdentityService] between a [PublicKey] and a
+ * [Party]. It generates a new key pair for a given [UUID] and register's the new key mapping.
  *
  * The generation of the [SignedKeyForAccount] is delegated to the counter-party which concatenates the original
  * [ChallengeResponse] with its own [ChallengeResponse] and signs over the concatenated hash before sending this value
@@ -22,7 +30,7 @@ import java.util.*
  */
 @StartableByRPC
 @InitiatingFlow
-class RequestKeyForUUIDInitiator(private val otherParty: Party, private val uuid: UUID) : FlowLogic<AnonymousParty>() {
+class RequestKeyForUUIDInitiator(private val otherParty: Party, private val uuid: UUID) : AbstractInitiatingFlow<AnonymousParty>() {
     @Suspendable
     override fun call(): AnonymousParty {
         return subFlow(RequestKeyFlow(initiateFlow(otherParty), uuid))
@@ -33,7 +41,7 @@ class RequestKeyForUUIDInitiator(private val otherParty: Party, private val uuid
  * Responder flow to [RequestKeyForUUID].
  */
 @InitiatedBy(RequestKeyForUUIDInitiator::class)
-class RequestKeyForUUIDResponder(private val otherSession: FlowSession) : FlowLogic<Unit>() {
+class RequestKeyForUUIDResponder(private val otherSession: FlowSession) : AbstractInitiatingFlow<Unit>() {
     @Suspendable
     override fun call() {
         subFlow(ProvideKeyFlow(otherSession))
@@ -41,8 +49,7 @@ class RequestKeyForUUIDResponder(private val otherSession: FlowSession) : FlowLo
 }
 
 /**
- * This flow registers a mapping in the [net.corda.core.node.services.IdentityService] between a known [PublicKey] and
- * a [Party].
+ * This flow registers a mapping in the [IdentityService] between a known [PublicKey] and a [Party].
  *
  * The generation of the [SignedKeyForAccount] is delegated to the counter-party which concatenates the original
  * [ChallengeResponse] with its own [ChallengeResponse] and signs over the concatenated hash before sending this value
@@ -52,7 +59,7 @@ class RequestKeyForUUIDResponder(private val otherSession: FlowSession) : FlowLo
  */
 @StartableByRPC
 @InitiatingFlow
-class VerifyAndAddKey(private val otherParty: Party, private val key: PublicKey) : FlowLogic<AnonymousParty>() {
+class VerifyAndAddKey(private val otherParty: Party, private val key: PublicKey) : AbstractInitiatingFlow<AnonymousParty>() {
     @Suspendable
     override fun call(): AnonymousParty {
         return subFlow(RequestKeyFlow(initiateFlow(otherParty), key))
@@ -63,7 +70,7 @@ class VerifyAndAddKey(private val otherParty: Party, private val key: PublicKey)
  * Responder flow to [VerifyAndAddKey].
  */
 @InitiatedBy(VerifyAndAddKey::class)
-class VerifyAndAddKeyResponder(private val otherSession: FlowSession) : FlowLogic<Unit>() {
+class VerifyAndAddKeyResponder(private val otherSession: FlowSession) : AbstractInitiatingFlow<Unit>() {
     @Suspendable
     override fun call() {
         subFlow(ProvideKeyFlow(otherSession))
@@ -71,8 +78,8 @@ class VerifyAndAddKeyResponder(private val otherSession: FlowSession) : FlowLogi
 }
 
 /**
- * This flow registers a mapping in the [net.corda.core.node.services.IdentityService] between a [PublicKey] and a
- * [Party]. The counter-party will generate a fresh [PublicKey] using the [KeyManagementService].
+ * This flow registers a mapping in the [IdentityService] between a [PublicKey] and a [Party]. The counter-party will
+ * generate a fresh [PublicKey] using the [KeyManagementService].
  *
  * The generation of the [SignedKeyForAccount] is delegated to the counter-party which concatenates the original
  * [ChallengeResponse] with its own [ChallengeResponse] and signs over the concatenated hash before sending this value
@@ -82,7 +89,7 @@ class VerifyAndAddKeyResponder(private val otherSession: FlowSession) : FlowLogi
  */
 @StartableByRPC
 @InitiatingFlow
-class RequestKey(private val otherParty: Party) : FlowLogic<AnonymousParty>() {
+class RequestKey(private val otherParty: Party) : AbstractInitiatingFlow<AnonymousParty>() {
     @Suspendable
     override fun call(): AnonymousParty {
         return subFlow(RequestKeyFlow(initiateFlow(otherParty)))
@@ -93,7 +100,7 @@ class RequestKey(private val otherParty: Party) : FlowLogic<AnonymousParty>() {
  * Responder flow to [RequestKey].
  */
 @InitiatedBy(RequestKey::class)
-class RequestKeyResponder(private val otherSession: FlowSession) : FlowLogic<Unit>() {
+class RequestKeyResponder(private val otherSession: FlowSession) : AbstractInitiatingFlow<Unit>() {
     @Suspendable
     override fun call() {
         subFlow(ProvideKeyFlow(otherSession))
@@ -113,9 +120,10 @@ class RequestKeyResponder(private val otherSession: FlowSession) : FlowLogic<Uni
 @StartableByRPC
 class SyncKeyMappingInitiator
 private constructor(
-        private val otherParty: Party,
-        private val tx: WireTransaction?,
-        private val identitiesToSync: List<AbstractParty>?) : FlowLogic<Unit>() {
+    private val otherParty: Party,
+    private val tx: WireTransaction?,
+    private val identitiesToSync: List<AbstractParty>?
+) : AbstractInitiatingFlow<Unit>() {
     constructor(otherParty: Party, tx: WireTransaction) : this(otherParty, tx, null)
     constructor(otherParty: Party, identitiesToSync: List<AbstractParty>) : this(otherParty, null, identitiesToSync)
 
@@ -124,9 +132,15 @@ private constructor(
         if (tx != null) {
             subFlow(SyncKeyMappingFlow(initiateFlow(otherParty), tx))
         } else {
-            subFlow(SyncKeyMappingFlow(initiateFlow(otherParty), identitiesToSync
-                    ?: throw IllegalArgumentException("A list of anonymous parties or a valid tx id must be provided " +
-                            "to this flow.")))
+            subFlow(
+                SyncKeyMappingFlow(
+                    initiateFlow(otherParty), identitiesToSync
+                        ?: throw IllegalArgumentException(
+                            "A list of anonymous parties or a valid tx id must be provided " +
+                                    "to this flow."
+                        )
+                )
+            )
         }
     }
 }
@@ -135,9 +149,21 @@ private constructor(
  * Responder flow to [SyncKeyMappingInitiator].
  */
 @InitiatedBy(SyncKeyMappingInitiator::class)
-class SyncKeyMappingResponder(private val otherSession: FlowSession) : FlowLogic<Unit>() {
+class SyncKeyMappingResponder(private val otherSession: FlowSession) : AbstractInitiatingFlow<Unit>() {
     @Suspendable
     override fun call() {
         subFlow(SyncKeyMappingFlowHandler(otherSession))
     }
+}
+
+abstract class AbstractInitiatingFlow<T> : Flow<T> {
+    @CordaInject
+    lateinit var flowEngine: FlowEngine
+
+    @CordaInject
+    lateinit var flowMessaging: FlowMessaging
+
+    fun <R> subFlow(flow: Flow<R>) = flowEngine.subFlow(flow)
+
+    fun initiateFlow(otherParty: Party) = flowMessaging.initiateFlow(otherParty)
 }
