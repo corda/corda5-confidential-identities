@@ -29,7 +29,8 @@ import org.junit.Test
 import java.util.concurrent.Future
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
-@Ignore
+
+@Ignore("DriverDSL tests ignored/commented out to allow the build to be successful until they can be replaces. DriverDSL removed in C5.")
 class DriverBasedTest {
 
     @Test
