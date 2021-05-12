@@ -55,7 +55,6 @@ dependencies {
 
     testCompile "$tokens_release_group:tokens-contracts:$tokens_sdk_version"
     testCompile "$tokens_release_group:tokens-workflows:$tokens_sdk_version"
-    testCompile "$tokens_release_group:tokens-money:$tokens_sdk_version"
 }
 
 task integrationTest(type: Test, dependsOn: []) {

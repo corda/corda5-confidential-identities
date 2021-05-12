@@ -1,4 +1,5 @@
 import static org.gradle.api.JavaVersion.VERSION_11
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 buildscript {
     ext {
@@ -16,9 +17,9 @@ buildscript {
         log4j_version = '2.11.2'
         corda_platform_version = '4'
         tokens_release_group = 'com.r3.corda.lib.tokens'
-        tokens_sdk_version = '1.0'
+        tokens_sdk_version = '2.0-SNAPSHOT'
         confidential_id_release_group = "com.r3.corda.lib.ci"
-        confidential_id_release_version = "2.0"
+        confidential_id_release_version = "2.0-SNAPSHOT"
         jfrogArtifactoryPluginVersion = '4.18.0'
     }
 
@@ -87,7 +88,7 @@ allprojects {
         }
     }
 
-    tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile) {
+    tasks.withType(KotlinCompile) {
         kotlinOptions {
             allWarningsAsErrors = true
             languageVersion = "1.4"
