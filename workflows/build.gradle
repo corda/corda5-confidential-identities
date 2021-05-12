@@ -39,7 +39,7 @@ sourceSets {
 
 configurations {
     integrationTestCompile.extendsFrom testCompile
-    integrationTestRuntime.extendsFrom testRuntime 
+    integrationTestRuntime.extendsFrom testRuntime
 }
 
 dependencies {

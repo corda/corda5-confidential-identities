@@ -2,7 +2,7 @@ import static org.gradle.api.JavaVersion.VERSION_11
 
 buildscript {
     ext {
-        artifactoryContextUrl='https://software.r3.com/artifactory'
+        artifactoryContextUrl = 'https://software.r3.com/artifactory'
         cordaArtifactoryUsername = System.getenv('CORDA_ARTIFACTORY_USERNAME') ?: System.getProperty('corda.artifactory.username')
         cordaArtifactoryPassword = System.getenv('CORDA_ARTIFACTORY_PASSWORD') ?: System.getProperty('corda.artifactory.password')
         corda_release_group = 'net.corda'
@@ -15,11 +15,11 @@ buildscript {
         slf4j_version = '1.7.25'
         log4j_version = '2.11.2'
         corda_platform_version = '4'
-        tokens_release_group='com.r3.corda.lib.tokens'
-        tokens_sdk_version='1.0'
+        tokens_release_group = 'com.r3.corda.lib.tokens'
+        tokens_sdk_version = '1.0'
         confidential_id_release_group = "com.r3.corda.lib.ci"
         confidential_id_release_version = "2.0"
-        jfrogArtifactoryPluginVersion='4.18.0'
+        jfrogArtifactoryPluginVersion = '4.18.0'
     }
 
     repositories {
@@ -95,10 +95,10 @@ allprojects {
             jvmTarget = VERSION_11
             javaParameters = true   // Useful for reflection.
             freeCompilerArgs += [
-                "-Xjvm-default=all",
-                // Prevent Kotlin from warning about kotlin.* classes inside the OSGi bundle.
-                "-Xskip-runtime-version-check",
-                "-java-parameters"
+                    "-Xjvm-default=all",
+                    // Prevent Kotlin from warning about kotlin.* classes inside the OSGi bundle.
+                    "-Xskip-runtime-version-check",
+                    "-java-parameters"
             ]
         }
     }
