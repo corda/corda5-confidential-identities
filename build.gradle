@@ -4,8 +4,6 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 buildscript {
     ext {
         artifactoryContextUrl = 'https://software.r3.com/artifactory'
-        cordaArtifactoryUsername = System.getenv('CORDA_ARTIFACTORY_USERNAME') ?: System.getProperty('corda.artifactory.username')
-        cordaArtifactoryPassword = System.getenv('CORDA_ARTIFACTORY_PASSWORD') ?: System.getProperty('corda.artifactory.password')
         corda_release_group = 'net.corda'
         corda_release_version = '1.0.1620894007947-rc'
         corda_gradle_plugins_version = '6.0.0-BETA03'
@@ -49,23 +47,13 @@ allprojects {
         mavenLocal()
         jcenter()
         mavenCentral()
-        maven { url "$artifactoryContextUrl/corda-dev" }
-        maven { url "$artifactoryContextUrl/corda-releases" }
         maven { url "$artifactoryContextUrl/corda-lib" }
         maven { url "$artifactoryContextUrl/corda-lib-dev" }
-        maven { url "$artifactoryContextUrl/corda-dependencies" }
+        maven { url "$artifactoryContextUrl/corda-releases" }
         maven { url "https://repo.gradle.org/gradle/libs-releases-local/" }
+        maven { url "$artifactoryContextUrl/corda-dependencies" }
         //needed for C5 binaries
-        maven {
-            url = "$artifactoryContextUrl/corda-os-maven-unstable"
-            credentials {
-                username = cordaArtifactoryUsername
-                password = cordaArtifactoryPassword
-            }
-        }
-        maven {
-            url = "$artifactoryContextUrl/corda-dependencies"
-        }
+        maven { url "$artifactoryContextUrl/corda-os-maven-unstable" }
     }
 
     tasks.withType(KotlinCompile) {
@@ -91,44 +79,6 @@ allprojects {
             reproducibleFileOrder = true
         }
     }
-}
-
-apply plugin: 'net.corda.plugins.cordapp-cpk'
-
-sourceSets {
-    main {
-        resources {
-            srcDir rootProject.file("config/dev")
-        }
-    }
-}
-cordapp {
-    targetPlatformVersion corda_platform_version.toInteger()
-    minimumPlatformVersion corda_platform_version.toInteger()
-
-    signing {
-        enabled = false
-    }
-
-    workflow {
-        name = "Confidential Identities - New"
-        versionId = 2
-        licence = 'Apache License, Version 2.0'
-        vendor = "Corda Open Source"
-    }
-}
-
-dependencies {
-    // Corda dependencies.
-    cordaProvided "$corda_release_group:corda-application:$corda_release_version"
-    cordaProvided "$corda_release_group:corda-node-api:$corda_release_version"
-
-    // CorDapp dependencies.
-    cordapp project(":ci-workflows")
-
-    cordaProvided "org.apache.logging.log4j:log4j-slf4j-impl:${log4j_version}"
-    cordaProvided "org.apache.logging.log4j:log4j-web:${log4j_version}"
-    cordaProvided "org.slf4j:jul-to-slf4j:$slf4j_version"
 }
 
 def publishProjects = [project(":ci-workflows")]
@@ -173,8 +123,8 @@ artifactory {
         contextUrl = 'https://software.r3.com/artifactory'
         repository {
             repoKey = 'corda-lib'
-            username = cordaArtifactoryUsername
-            password = cordaArtifactoryPassword
+            username = System.getenv('CORDA_ARTIFACTORY_USERNAME') ?: System.getProperty('corda.artifactory.username')
+            password = System.getenv('CORDA_ARTIFACTORY_PASSWORD') ?: System.getProperty('corda.artifactory.password')
         }
 
         defaults {
