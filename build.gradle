@@ -8,7 +8,6 @@ buildscript {
         cordaArtifactoryPassword = System.getenv('CORDA_ARTIFACTORY_PASSWORD') ?: System.getProperty('corda.artifactory.password')
         corda_release_group = 'net.corda'
         corda_release_version = '1.0.1620894007947-rc'
-        legacy_corda_release_version = '4.3'
         corda_gradle_plugins_version = '6.0.0-BETA03'
         kotlin_version = '1.4.21'
         junit_version = '4.12'
@@ -39,7 +38,6 @@ buildscript {
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
         classpath "org.jetbrains.kotlin:kotlin-noarg:$kotlin_version"
         classpath "net.corda.plugins:cordapp-cpk:$corda_gradle_plugins_version"
-        classpath "net.corda.plugins:cordformation:$corda_gradle_plugins_version"
     }
 }
 
@@ -51,24 +49,10 @@ allprojects {
     version "$confidential_id_release_version"
     group "$confidential_id_release_group"
 
-    configurations.all {
-        resolutionStrategy {
-            // Force dependencies to use the same version of Kotlin
-            force "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
-            force "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlin_version"
-            force "org.jetbrains.kotlin:kotlin-stdlib-jre8:$kotlin_version"
-            force "org.jetbrains.kotlin:kotlin-stdlib-jre7:$kotlin_version"
-            force "org.jetbrains.kotlin:kotlin-reflect:$kotlin_version"
-
-            cacheChangingModulesFor 0, 'seconds'
-        }
-    }
-
     repositories {
         mavenLocal()
         jcenter()
         mavenCentral()
-        maven { url 'https://jitpack.io' }
         maven { url "$artifactoryContextUrl/corda-dev" }
         maven { url "$artifactoryContextUrl/corda-releases" }
         maven { url "$artifactoryContextUrl/corda-lib" }
@@ -114,7 +98,6 @@ allprojects {
 }
 
 apply plugin: 'net.corda.plugins.cordapp-cpk'
-apply plugin: 'net.corda.plugins.cordformation'
 
 sourceSets {
     main {

@@ -53,7 +53,6 @@ dependencies {
     cordaProvided "$corda_release_group:corda-application:$corda_release_version"
     cordaProvided "$corda_release_group:corda-ledger:$corda_release_version"
     cordaProvided "$corda_release_group:corda-crypto-api:$corda_release_version"
-    testCompile "$corda_release_group:corda-node-driver:$legacy_corda_release_version"
 
     testCompile "$tokens_release_group:tokens-contracts:$tokens_sdk_version"
     testCompile "$tokens_release_group:tokens-workflows:$tokens_sdk_version"
