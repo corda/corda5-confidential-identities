@@ -25,12 +25,8 @@ buildscript {
         jcenter()
         mavenCentral()
         mavenLocal()
-        maven { url 'https://jitpack.io' }
         maven { url "$artifactoryContextUrl/corda-dev" }
         maven { url "$artifactoryContextUrl/corda-releases" }
-        maven { url "$artifactoryContextUrl/corda-lib" }
-        maven { url "$artifactoryContextUrl/corda-lib-dev" }
-        maven { url "$artifactoryContextUrl/corda-dependencies" }
         maven { url "https://repo.gradle.org/gradle/libs-releases-local" }
     }
 
