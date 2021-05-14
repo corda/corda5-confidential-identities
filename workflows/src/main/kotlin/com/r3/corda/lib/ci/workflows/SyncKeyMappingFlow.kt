@@ -2,14 +2,12 @@ package com.r3.corda.lib.ci.workflows
 
 import net.corda.v5.application.flows.Flow
 import net.corda.v5.application.flows.FlowSession
-import net.corda.v5.application.flows.flowservices.CustomProgressTracker
 import net.corda.v5.application.flows.flowservices.FlowEngine
 import net.corda.v5.application.flows.flowservices.dependencies.CordaInject
 import net.corda.v5.application.identity.AbstractParty
 import net.corda.v5.application.identity.Party
 import net.corda.v5.application.node.services.IdentityService
 import net.corda.v5.application.node.services.NetworkMapCache
-import net.corda.v5.application.utilities.ProgressTracker
 import net.corda.v5.application.utilities.unwrap
 import net.corda.v5.base.annotations.Suspendable
 import net.corda.v5.base.util.contextLogger
@@ -33,7 +31,7 @@ private constructor(
     private val session: FlowSession,
     private val tx: WireTransaction?,
     private val identitiesToSync: List<AbstractParty>?
-) : Flow<Unit>, CustomProgressTracker {
+) : Flow<Unit> {
 
     /**
      * Synchronize the "confidential identities" present in a transaction with the counterparty specified by the
@@ -53,13 +51,11 @@ private constructor(
      */
     constructor(session: FlowSession, identitiesToSync: List<AbstractParty>) : this(session, null, identitiesToSync)
 
-    companion object {
-        object SYNCING_KEY_MAPPINGS : ProgressTracker.Step("Syncing key mappings.")
+    private companion object {
+        const val SYNCING_KEY_MAPPINGS = "Syncing key mappings."
 
-        private val logger = contextLogger()
+        val logger = contextLogger()
     }
-
-    override val progressTracker = ProgressTracker(SYNCING_KEY_MAPPINGS)
 
     @CordaInject
     lateinit var identityService: IdentityService
@@ -72,7 +68,7 @@ private constructor(
 
     @Suspendable
     override fun call() {
-        progressTracker.currentStep = SYNCING_KEY_MAPPINGS
+        logger.debug("${this::class.java.name}: $SYNCING_KEY_MAPPINGS")
         val confidentialIdentities =
             if (tx != null) {
                 extractConfidentialIdentities(tx)
@@ -115,30 +111,24 @@ private constructor(
     }
 }
 
-class SyncKeyMappingFlowHandler(private val otherSession: FlowSession) : Flow<Unit>, CustomProgressTracker {
-    companion object {
-        object RECEIVING_IDENTITIES : ProgressTracker.Step("Receiving confidential identities.")
-        object RECEIVING_PARTIES : ProgressTracker.Step("Receiving potential party objects for unknown identities.")
-        object NO_PARTIES_RECEIVED : ProgressTracker.Step(
+class SyncKeyMappingFlowHandler(private val otherSession: FlowSession) : Flow<Unit> {
+    private companion object {
+        const val RECEIVING_IDENTITIES = "Receiving confidential identities."
+        const val RECEIVING_PARTIES = "Receiving potential party objects for unknown identities."
+        const val NO_PARTIES_RECEIVED =
             "None of the requested unknown parties were resolved by the " +
                     "counter party. Terminating the flow early."
-        )
 
-        object REQUESTING_PROOF_OF_ID : ProgressTracker.Step(
+        const val REQUESTING_PROOF_OF_ID =
             "Requesting a signed key to party mapping for the " +
                     "received parties to verify the authenticity of the party."
-        )
 
-        object IDENTITIES_SYNCHRONISED : ProgressTracker.Step("Identities have finished synchronising.")
+        const val IDENTITIES_SYNCHRONISED = "Identities have finished synchronising."
+
+        val logger = contextLogger()
+
+        fun debug(msg: String) = logger.debug("${this::class.java.name}: $msg")
     }
-
-    override val progressTracker: ProgressTracker = ProgressTracker(
-        RECEIVING_IDENTITIES,
-        RECEIVING_PARTIES,
-        NO_PARTIES_RECEIVED,
-        REQUESTING_PROOF_OF_ID,
-        IDENTITIES_SYNCHRONISED
-    )
 
     @CordaInject
     lateinit var identityService: IdentityService
@@ -148,24 +138,24 @@ class SyncKeyMappingFlowHandler(private val otherSession: FlowSession) : Flow<Un
 
     @Suspendable
     override fun call() {
-        progressTracker.currentStep = RECEIVING_IDENTITIES
+        debug(RECEIVING_IDENTITIES)
         val allConfidentialIds = otherSession.receive<List<AbstractParty>>().unwrap { it }
         val unknownIdentities = allConfidentialIds.filter {
             identityService.wellKnownPartyFromAnonymous(it) == null
         }
         otherSession.send(unknownIdentities)
-        progressTracker.currentStep = RECEIVING_PARTIES
+        debug(RECEIVING_PARTIES)
 
         val mapConfidentialKeyToParty = otherSession.receive<Map<PublicKey, Party>>().unwrap { it.toList() }
         if (mapConfidentialKeyToParty.isEmpty()) {
-            progressTracker.currentStep = NO_PARTIES_RECEIVED
+            debug(NO_PARTIES_RECEIVED)
         }
 
-        progressTracker.currentStep = REQUESTING_PROOF_OF_ID
+        debug(REQUESTING_PROOF_OF_ID)
 
         mapConfidentialKeyToParty.forEach {
             flowEngine.subFlow(VerifyAndAddKey(it.second, it.first))
         }
-        progressTracker.currentStep = IDENTITIES_SYNCHRONISED
+        debug(IDENTITIES_SYNCHRONISED)
     }
 }

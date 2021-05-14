@@ -3,7 +3,6 @@ package com.r3.corda.lib.ci.workflows
 import net.corda.v5.application.flows.Flow
 import net.corda.v5.application.flows.FlowException
 import net.corda.v5.application.flows.FlowSession
-import net.corda.v5.application.flows.flowservices.CustomProgressTracker
 import net.corda.v5.application.flows.flowservices.FlowIdentity
 import net.corda.v5.application.flows.flowservices.dependencies.CordaInject
 import net.corda.v5.application.identity.AnonymousParty
@@ -11,9 +10,9 @@ import net.corda.v5.application.identity.Party
 import net.corda.v5.application.node.services.IdentityService
 import net.corda.v5.application.node.services.KeyManagementService
 import net.corda.v5.application.serialization.deserialize
-import net.corda.v5.application.utilities.ProgressTracker
 import net.corda.v5.application.utilities.unwrap
 import net.corda.v5.base.annotations.Suspendable
+import net.corda.v5.base.util.contextLogger
 import net.corda.v5.crypto.SecureHash
 import net.corda.v5.ledger.UniqueIdentifier
 import java.security.PublicKey
@@ -40,7 +39,7 @@ private constructor(
     private val session: FlowSession,
     private val uuid: UUID?,
     private val key: PublicKey?
-) : Flow<AnonymousParty>, CustomProgressTracker {
+) : Flow<AnonymousParty> {
 
     /**
      * For requesting a new key from a counter-party and have that counter-party assign it to a specified account.
@@ -66,31 +65,24 @@ private constructor(
      */
     constructor(session: FlowSession) : this(session, null, null)
 
-    companion object {
-        object REQUESTING_KEY : ProgressTracker.Step("Requesting a public key")
-        object VERIFYING_KEY : ProgressTracker.Step("Verifying counterparty's signature")
-        object KEY_VERIFIED : ProgressTracker.Step("Signature is correct")
-        object VERIFYING_CHALLENGE_RESPONSE : ProgressTracker.Step("Verifying the received SHA-256 matches the original that was sent")
-        object CHALLENGE_RESPONSE_VERIFIED : ProgressTracker.Step("SHA-256 is correct")
+    private companion object {
+        const val REQUESTING_KEY = "Requesting a public key"
+        const val VERIFYING_KEY = "Verifying counterparty's signature"
+        const val KEY_VERIFIED = "Signature is correct"
+        const val VERIFYING_CHALLENGE_RESPONSE = "Verifying the received SHA-256 matches the original that was sent"
+        const val CHALLENGE_RESPONSE_VERIFIED = "SHA-256 is correct"
 
-        @JvmStatic
-        fun tracker(): ProgressTracker = ProgressTracker(
-            REQUESTING_KEY,
-            VERIFYING_KEY,
-            KEY_VERIFIED,
-            VERIFYING_CHALLENGE_RESPONSE,
-            CHALLENGE_RESPONSE_VERIFIED
-        )
+        val logger = contextLogger()
+
+        fun debug(msg: String) = logger.debug("${this::class.java.name}: $msg")
     }
 
     @CordaInject
     lateinit var identityService: IdentityService
 
-    override val progressTracker = tracker()
-
     @Suspendable
     override fun call(): AnonymousParty {
-        progressTracker.currentStep = REQUESTING_KEY
+        debug(REQUESTING_KEY)
         val challengeResponseParam = SecureHash.randomSHA256()
         // Handle whether a key is already specified or not and whether a UUID is specified, or not.
         val requestKey = when {
@@ -101,17 +93,17 @@ private constructor(
         // Either get back a signed key or a flow exception is thrown.
         val signedKeyForAccount = session.sendAndReceive<SignedKeyForAccount>(requestKey).unwrap { it }
         // We need to verify the signature of the response and check that the payload is equal to what we expect.
-        progressTracker.currentStep = VERIFYING_KEY
+        debug(VERIFYING_KEY)
         verifySignedChallengeResponseSignature(signedKeyForAccount)
-        progressTracker.currentStep = KEY_VERIFIED
+        debug(KEY_VERIFIED)
         // Ensure the hash of both challenge response parameters matches the received hashed function
-        progressTracker.currentStep = VERIFYING_CHALLENGE_RESPONSE
+        debug(VERIFYING_CHALLENGE_RESPONSE)
         val additionalParam = signedKeyForAccount.additionalChallengeResponseParam
         val resultOfHashedParameters = challengeResponseParam.hashConcat(additionalParam)
         require(resultOfHashedParameters == signedKeyForAccount.signedChallengeResponse.raw.deserialize()) {
             "Challenge response invalid"
         }
-        progressTracker.currentStep = CHALLENGE_RESPONSE_VERIFIED
+        debug(CHALLENGE_RESPONSE_VERIFIED)
         // Flow sessions can only be opened with parties in the networkMapCache so we can be assured this is a valid party
         val counterParty = session.counterparty
         val newKey = signedKeyForAccount.publicKey

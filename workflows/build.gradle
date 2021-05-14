@@ -1,17 +1,20 @@
-apply plugin: 'net.corda.plugins.cordapp'
-apply plugin: 'net.corda.plugins.quasar-utils'
+plugins {
+    id 'net.corda.plugins.cordapp-cpk'
+    id 'net.corda.plugins.quasar-utils'
+}
 
 cordapp {
-    signing {
-        enabled false
-    }
     targetPlatformVersion corda_platform_version.toInteger()
     minimumPlatformVersion corda_platform_version.toInteger()
+
+    signing {
+        enabled = false
+    }
     workflow {
-        name "Confidential Identities Workflows"
-        vendor "Corda Open Source"
-        licence "Apache License, Version 2.0"
-        versionId 1
+        name = 'Confidential Identities Workflows'
+        versionId = 1
+        licence = 'Apache License, Version 2.0'
+        vendor = 'Corda Open Source'
     }
 }
 
@@ -48,9 +51,9 @@ dependencies {
     testCompile "junit:junit:$junit_version"
 
     // Corda dependencies.
-    cordaCompile "$corda_release_group:corda-application:$corda_release_version"
-    cordaCompile "$corda_release_group:corda-ledger:$corda_release_version"
-    cordaCompile "$corda_release_group:corda-crypto-api:$corda_release_version"
+    cordaProvided "$corda_release_group:corda-application:$corda_release_version"
+    cordaProvided "$corda_release_group:corda-ledger:$corda_release_version"
+    cordaProvided "$corda_release_group:corda-crypto-api:$corda_release_version"
     testCompile "$corda_release_group:corda-node-driver:$legacy_corda_release_version"
 
     testCompile "$tokens_release_group:tokens-contracts:$tokens_sdk_version"

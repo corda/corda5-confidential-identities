@@ -7,15 +7,15 @@ buildscript {
         cordaArtifactoryUsername = System.getenv('CORDA_ARTIFACTORY_USERNAME') ?: System.getProperty('corda.artifactory.username')
         cordaArtifactoryPassword = System.getenv('CORDA_ARTIFACTORY_PASSWORD') ?: System.getProperty('corda.artifactory.password')
         corda_release_group = 'net.corda'
-        corda_release_version = '1.0.1620649485675-rc'
+        corda_release_version = '1.0.1620894007947-rc'
         legacy_corda_release_version = '4.3'
-        corda_gradle_plugins_version = '5.0.8'
+        corda_gradle_plugins_version = '6.0.0-BETA03'
         kotlin_version = '1.4.21'
         junit_version = '4.12'
-        quasar_version = '0.7.10'
+        quasar_version = '0.7.14_r3'
         slf4j_version = '1.7.25'
         log4j_version = '2.11.2'
-        corda_platform_version = '4'
+        corda_platform_version = '999' // FAKE - to be locked in later
         tokens_release_group = 'com.r3.corda.lib.tokens'
         tokens_sdk_version = '2.0-SNAPSHOT'
         confidential_id_release_group = "com.r3.corda.lib.ci"
@@ -28,17 +28,18 @@ buildscript {
         mavenCentral()
         mavenLocal()
         maven { url 'https://jitpack.io' }
-        maven { url "https://software.r3.com/artifactory/corda-dev" }
-        maven { url "https://software.r3.com/artifactory/corda-releases" }
-        maven { url 'https://software.r3.com/artifactory/corda-lib' }
-        maven { url 'https://software.r3.com/artifactory/corda-lib-dev' }
+        maven { url "$artifactoryContextUrl/corda-dev" }
+        maven { url "$artifactoryContextUrl/corda-releases" }
+        maven { url "$artifactoryContextUrl/corda-lib" }
+        maven { url "$artifactoryContextUrl/corda-lib-dev" }
+        maven { url "$artifactoryContextUrl/corda-dependencies" }
         maven { url "https://repo.gradle.org/gradle/libs-releases-local" }
     }
 
     dependencies {
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
         classpath "org.jetbrains.kotlin:kotlin-noarg:$kotlin_version"
-        classpath "net.corda.plugins:cordapp:$corda_gradle_plugins_version"
+        classpath "net.corda.plugins:cordapp-cpk:$corda_gradle_plugins_version"
         classpath "net.corda.plugins:cordformation:$corda_gradle_plugins_version"
         classpath "net.corda.plugins:quasar-utils:$corda_gradle_plugins_version"
     }
@@ -70,10 +71,11 @@ allprojects {
         jcenter()
         mavenCentral()
         maven { url 'https://jitpack.io' }
-        maven { url "http://ci-artifactory.corda.r3cev.com/artifactory/corda-dev" }
-        maven { url "http://ci-artifactory.corda.r3cev.com/artifactory/corda-releases" }
-        maven { url "http://ci-artifactory.corda.r3cev.com/artifactory/corda-lib" }
-        maven { url "http://ci-artifactory.corda.r3cev.com/artifactory/corda-lib-dev" }
+        maven { url "$artifactoryContextUrl/corda-dev" }
+        maven { url "$artifactoryContextUrl/corda-releases" }
+        maven { url "$artifactoryContextUrl/corda-lib" }
+        maven { url "$artifactoryContextUrl/corda-lib-dev" }
+        maven { url "$artifactoryContextUrl/corda-dependencies" }
         maven { url "https://repo.gradle.org/gradle/libs-releases-local/" }
         //needed for C5 binaries
         maven {
@@ -113,7 +115,7 @@ allprojects {
     }
 }
 
-apply plugin: 'net.corda.plugins.cordapp'
+apply plugin: 'net.corda.plugins.cordapp-cpk'
 apply plugin: 'net.corda.plugins.cordformation'
 apply plugin: 'net.corda.plugins.quasar-utils'
 
@@ -125,28 +127,32 @@ sourceSets {
     }
 }
 cordapp {
+    targetPlatformVersion corda_platform_version.toInteger()
+    minimumPlatformVersion corda_platform_version.toInteger()
+
     signing {
-        enabled false
+        enabled = false
     }
-    info {
-        name "Confidential Identities - New"
-        vendor "Corda Open Source"
-        targetPlatformVersion corda_platform_version.toInteger()
-        minimumPlatformVersion corda_platform_version.toInteger()
+
+    workflow {
+        name = "Confidential Identities - New"
+        versionId = 1
+        licence = 'Apache License, Version 2.0'
+        vendor = "Corda Open Source"
     }
 }
 
 dependencies {
     // Corda dependencies.
-    cordaCompile "$corda_release_group:corda-application:$corda_release_version"
-    cordaCompile "$corda_release_group:corda-node-api:$corda_release_version"
+    cordaProvided "$corda_release_group:corda-application:$corda_release_version"
+    cordaProvided "$corda_release_group:corda-node-api:$corda_release_version"
 
     // CorDapp dependencies.
     cordapp project(":workflows")
 
-    cordaCompile "org.apache.logging.log4j:log4j-slf4j-impl:${log4j_version}"
-    cordaCompile "org.apache.logging.log4j:log4j-web:${log4j_version}"
-    cordaCompile "org.slf4j:jul-to-slf4j:$slf4j_version"
+    cordaProvided "org.apache.logging.log4j:log4j-slf4j-impl:${log4j_version}"
+    cordaProvided "org.apache.logging.log4j:log4j-web:${log4j_version}"
+    cordaProvided "org.slf4j:jul-to-slf4j:$slf4j_version"
 }
 
 def publishProjects = [project(":workflows")]
@@ -191,8 +197,8 @@ artifactory {
         contextUrl = 'https://software.r3.com/artifactory'
         repository {
             repoKey = 'corda-lib'
-            username = System.getenv('CORDA_ARTIFACTORY_USERNAME') ?: System.getProperty('corda.artifactory.username')
-            password = System.getenv('CORDA_ARTIFACTORY_PASSWORD') ?: System.getProperty('corda.artifactory.password')
+            username = cordaArtifactoryUsername
+            password = cordaArtifactoryPassword
         }
 
         defaults {
@@ -206,11 +212,4 @@ artifactory {
 wrapper {
     gradleVersion = "6.8.3"
     distributionType = Wrapper.DistributionType.ALL
-}
-
-task installQuasar(type: Copy) {
-    destinationDir rootProject.file("lib")
-    from(configurations.quasar) {
-        rename 'quasar-core(.*).jar', 'quasar.jar'
-    }
 }
