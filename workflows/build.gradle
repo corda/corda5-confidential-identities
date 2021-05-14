@@ -11,7 +11,7 @@ cordapp {
     }
     workflow {
         name = 'Confidential Identities Workflows'
-        versionId = 1
+        versionId = 2
         licence = 'Apache License, Version 2.0'
         vendor = 'Corda Open Source'
     }
