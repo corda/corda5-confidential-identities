@@ -3,20 +3,8 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 buildscript {
     ext {
-        artifactoryContextUrl = 'https://software.r3.com/artifactory'
-        corda_release_group = 'net.corda'
-        corda_release_version = '1.0.1620894007947-rc'
-        corda_gradle_plugins_version = '6.0.0-BETA03'
-        kotlin_version = '1.4.21'
-        junit_version = '4.12'
-        slf4j_version = '1.7.25'
-        log4j_version = '2.11.2'
-        corda_platform_version = '999' // FAKE - to be locked in later
-        tokens_release_group = 'com.r3.corda.lib.tokens'
-        tokens_sdk_version = '2.0-SNAPSHOT'
-        confidential_id_release_group = "com.r3.corda.lib.ci"
-        confidential_id_release_version = "2.0-SNAPSHOT"
-        jfrogArtifactoryPluginVersion = '4.18.0'
+        cordaArtifactoryUsername = System.getenv('CORDA_ARTIFACTORY_USERNAME') ?: System.getProperty('corda.artifactory.username')
+        cordaArtifactoryPassword = System.getenv('CORDA_ARTIFACTORY_PASSWORD') ?: System.getProperty('corda.artifactory.password')
     }
 
     repositories {
@@ -53,7 +41,13 @@ allprojects {
         maven { url "https://repo.gradle.org/gradle/libs-releases-local/" }
         maven { url "$artifactoryContextUrl/corda-dependencies" }
         //needed for C5 binaries
-        maven { url "$artifactoryContextUrl/corda-os-maven-unstable" }
+        maven {
+            url = "$artifactoryContextUrl/corda-os-maven-unstable"
+            credentials {
+                username = cordaArtifactoryUsername
+                password = cordaArtifactoryPassword
+            }
+        }
     }
 
     tasks.withType(KotlinCompile) {
@@ -123,8 +117,8 @@ artifactory {
         contextUrl = 'https://software.r3.com/artifactory'
         repository {
             repoKey = 'corda-lib'
-            username = System.getenv('CORDA_ARTIFACTORY_USERNAME') ?: System.getProperty('corda.artifactory.username')
-            password = System.getenv('CORDA_ARTIFACTORY_PASSWORD') ?: System.getProperty('corda.artifactory.password')
+            username = cordaArtifactoryUsername
+            password = cordaArtifactoryPassword
         }
 
         defaults {

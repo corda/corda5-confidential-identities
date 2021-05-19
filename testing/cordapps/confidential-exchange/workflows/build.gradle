@@ -1,0 +1,27 @@
+plugins {
+    id 'net.corda.plugins.cordapp-cpk'
+    id 'kotlin'
+}
+
+dependencies {
+    cordaProvided "$corda_release_group:corda-ledger:$corda_release_version"
+    cordaProvided "$corda_release_group:corda-application:$corda_release_version"
+    cordaProvided "$corda_release_group:corda-flows:$corda_release_version"
+
+    cordapp project(":testing:cordapps:confidential-exchange:contracts")
+    cordapp project(":ci-workflows")
+}
+
+cordapp {
+    targetPlatformVersion corda_platform_version as Integer
+    minimumPlatformVersion 11
+    workflow {
+        name "Corda Confidential Identities - Confidential Exchange Workflows"
+        versionId 1
+        vendor "R3"
+    }
+}
+
+jar {
+    archiveBaseName = 'corda-ci-confidentialexchange-workflows'
+}

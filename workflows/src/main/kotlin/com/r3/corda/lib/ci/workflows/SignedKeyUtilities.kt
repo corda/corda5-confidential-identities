@@ -7,6 +7,7 @@ import net.corda.v5.base.annotations.CordaInternal
 import net.corda.v5.base.annotations.CordaSerializable
 import net.corda.v5.base.annotations.VisibleForTesting
 import net.corda.v5.crypto.SecureHash
+import net.corda.v5.crypto.SignatureVerificationService
 import net.corda.v5.crypto.hash
 import java.security.PublicKey
 import java.security.SignatureException
@@ -74,9 +75,11 @@ private fun KeyManagementService.concatChallengeResponseAndSign(
  */
 @CordaInternal
 @VisibleForTesting
-fun verifySignedChallengeResponseSignature(signedKeyForAccount: SignedKeyForAccount) {
+fun verifySignedChallengeResponseSignature(signatureVerifier: SignatureVerificationService, signedKeyForAccount: SignedKeyForAccount) {
     try {
-        signedKeyForAccount.signedChallengeResponse.sig.verify(signedKeyForAccount.signedChallengeResponse.raw.hash.bytes)
+        with(signedKeyForAccount.signedChallengeResponse) {
+            signatureVerifier.verify(sig.by, sig.bytes, raw.hash.bytes)
+        }
     } catch (ex: SignatureException) {
         throw SignatureException("The signature on the object does not match that of the expected public key signature", ex)
     }

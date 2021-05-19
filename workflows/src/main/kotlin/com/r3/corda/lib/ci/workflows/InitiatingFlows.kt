@@ -163,7 +163,9 @@ abstract class AbstractInitiatingFlow<T> : Flow<T> {
     @CordaInject
     lateinit var flowMessaging: FlowMessaging
 
+    @Suspendable
     fun <R> subFlow(flow: Flow<R>) = flowEngine.subFlow(flow)
 
+    @Suspendable
     fun initiateFlow(otherParty: Party) = flowMessaging.initiateFlow(otherParty)
 }

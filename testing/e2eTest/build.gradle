@@ -1,0 +1,23 @@
+plugins {
+    id 'kotlin'
+}
+
+dependencies {
+    testImplementation "org.assertj:assertj-core:$assertj_version"
+    testImplementation "org.junit.jupiter:junit-jupiter-api:$junit_version"
+    testRuntimeOnly "org.junit.jupiter:junit-jupiter-engine:$junit_version"
+
+    testImplementation "$corda_release_group:corda-application:$corda_release_version"
+    testImplementation "$corda_release_group:corda-ledger:$corda_release_version"
+    testImplementation "$corda_release_group:corda-dev-network-lib:$corda_release_version"
+    testImplementation "$corda_release_group:corda-client-rpc:$corda_release_version"
+    testImplementation "$corda_release_group:corda-legacy-api:$corda_release_version"
+
+    testImplementation project(":testing:cordapps:confidential-exchange:workflows")
+    testImplementation project(":testing:cordapps:confidential-exchange:contracts")
+    testImplementation project(":ci-workflows")
+}
+
+test {
+    useJUnitPlatform()
+}

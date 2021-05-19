@@ -9,6 +9,7 @@ import net.corda.v5.application.identity.AnonymousParty
 import net.corda.v5.application.identity.Party
 import net.corda.v5.application.node.services.IdentityService
 import net.corda.v5.application.node.services.KeyManagementService
+import net.corda.v5.application.node.services.TransactionSignatureVerificationService
 import net.corda.v5.application.serialization.deserialize
 import net.corda.v5.application.utilities.unwrap
 import net.corda.v5.base.annotations.Suspendable
@@ -80,6 +81,9 @@ private constructor(
     @CordaInject
     lateinit var identityService: IdentityService
 
+    @CordaInject
+    lateinit var signatureVerifier: TransactionSignatureVerificationService
+
     @Suspendable
     override fun call(): AnonymousParty {
         debug(REQUESTING_KEY)
@@ -94,7 +98,7 @@ private constructor(
         val signedKeyForAccount = session.sendAndReceive<SignedKeyForAccount>(requestKey).unwrap { it }
         // We need to verify the signature of the response and check that the payload is equal to what we expect.
         debug(VERIFYING_KEY)
-        verifySignedChallengeResponseSignature(signedKeyForAccount)
+        verifySignedChallengeResponseSignature(signatureVerifier, signedKeyForAccount)
         debug(KEY_VERIFIED)
         // Ensure the hash of both challenge response parameters matches the received hashed function
         debug(VERIFYING_CHALLENGE_RESPONSE)

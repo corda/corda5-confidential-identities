@@ -1,0 +1,23 @@
+plugins {
+    id 'net.corda.plugins.cordapp-cpk'
+    id 'kotlin'
+}
+
+dependencies {
+    cordaProvided "$corda_release_group:corda-ledger:$corda_release_version"
+    cordaProvided "$corda_release_group:corda-application:$corda_release_version"
+}
+
+cordapp {
+    targetPlatformVersion corda_platform_version as Integer
+    minimumPlatformVersion 11
+    contract {
+        name "Corda Confidential Identities - Confidential Exchange Contracts"
+        versionId 1
+        vendor "R3"
+    }
+}
+
+jar {
+    archiveBaseName = 'corda-ci-confidentialexchange-contracts'
+}

@@ -1,3 +1,11 @@
 include 'workflows'
-
 project(":workflows").name = "ci-workflows"
+
+// Test cordapps
+include 'testing'
+include 'testing:cordapps'
+include 'testing:cordapps:confidential-exchange'
+include 'testing:cordapps:confidential-exchange:contracts'
+include 'testing:cordapps:confidential-exchange:workflows'
+
+include 'testing:e2eTest'
