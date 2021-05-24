@@ -2,6 +2,8 @@ plugins {
     id 'net.corda.plugins.cordapp-cpk'
 }
 
+apply plugin: 'jacoco'
+
 cordapp {
     targetPlatformVersion corda_platform_version.toInteger()
     minimumPlatformVersion 11
@@ -53,11 +55,18 @@ dependencies {
     cordaProvided "$corda_release_group:corda-ledger:$corda_release_version"
     cordaProvided "$corda_release_group:corda-crypto-api:$corda_release_version"
 
-    testCompile "$tokens_release_group:tokens-contracts:$tokens_sdk_version"
-    testCompile "$tokens_release_group:tokens-workflows:$tokens_sdk_version"
+    testImplementation "org.assertj:assertj-core:$assertj_version"
+    testImplementation "org.junit.jupiter:junit-jupiter-api:$junit_version"
+    testImplementation "io.mockk:mockk:$mockkVersion"
+    testRuntimeOnly "org.junit.jupiter:junit-jupiter-engine:$junit_version"
 }
 
 task integrationTest(type: Test, dependsOn: []) {
     testClassesDirs = sourceSets.integrationTest.output.classesDirs
     classpath = sourceSets.integrationTest.runtimeClasspath
+}
+
+tasks.withType(Test).configureEach {
+    useJUnitPlatform()
+    reports { junitXml.setEnabled(true) }
 }

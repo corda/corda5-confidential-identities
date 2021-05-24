@@ -2,22 +2,38 @@ plugins {
     id 'kotlin'
 }
 
-dependencies {
-    testImplementation "org.assertj:assertj-core:$assertj_version"
-    testImplementation "org.junit.jupiter:junit-jupiter-api:$junit_version"
-    testRuntimeOnly "org.junit.jupiter:junit-jupiter-engine:$junit_version"
-
-    testImplementation "$corda_release_group:corda-application:$corda_release_version"
-    testImplementation "$corda_release_group:corda-ledger:$corda_release_version"
-    testImplementation "$corda_release_group:corda-dev-network-lib:$corda_release_version"
-    testImplementation "$corda_release_group:corda-client-rpc:$corda_release_version"
-    testImplementation "$corda_release_group:corda-legacy-api:$corda_release_version"
-
-    testImplementation project(":testing:cordapps:confidential-exchange:workflows")
-    testImplementation project(":testing:cordapps:confidential-exchange:contracts")
-    testImplementation project(":ci-workflows")
+sourceSets {
+    e2eTest {
+        compileClasspath += sourceSets.main.output
+        runtimeClasspath += sourceSets.main.output
+    }
 }
 
-test {
+configurations {
+    e2eTestImplementation.extendsFrom implementation
+    e2eTestRuntimeOnly.extendsFrom runtimeOnly
+}
+
+dependencies {
+    e2eTestImplementation "org.assertj:assertj-core:$assertj_version"
+    e2eTestImplementation "org.junit.jupiter:junit-jupiter-api:$junit_version"
+    e2eTestRuntimeOnly "org.junit.jupiter:junit-jupiter-engine:$junit_version"
+
+    e2eTestImplementation "$corda_release_group:corda-application:$corda_release_version"
+    e2eTestImplementation "$corda_release_group:corda-ledger:$corda_release_version"
+    e2eTestImplementation "$corda_release_group:corda-dev-network-lib:$corda_release_version"
+    e2eTestImplementation "$corda_release_group:corda-client-rpc:$corda_release_version"
+    e2eTestImplementation "$corda_release_group:corda-legacy-api:$corda_release_version"
+
+    e2eTestImplementation project(":testing:cordapps:confidential-exchange:workflows")
+    e2eTestImplementation project(":testing:cordapps:confidential-exchange:contracts")
+    e2eTestImplementation project(":ci-workflows")
+}
+tasks.register('e2eTest', Test) {
+    description = 'Runs end to end tests.'
+    group = 'verification'
+
+    testClassesDirs = sourceSets.e2eTest.output.classesDirs
+    classpath = sourceSets.e2eTest.runtimeClasspath
     useJUnitPlatform()
 }
