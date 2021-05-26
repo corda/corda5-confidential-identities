@@ -1,5 +1,6 @@
 package com.r3.corda.lib.ci.workflows
 
+import com.r3.corda.lib.ci.services.SignedKeyService
 import net.corda.v5.application.flows.Flow
 import net.corda.v5.application.flows.FlowException
 import net.corda.v5.application.flows.FlowSession
@@ -9,7 +10,7 @@ import net.corda.v5.application.identity.AnonymousParty
 import net.corda.v5.application.identity.Party
 import net.corda.v5.application.node.services.IdentityService
 import net.corda.v5.application.node.services.KeyManagementService
-import net.corda.v5.application.node.services.TransactionSignatureVerificationService
+import net.corda.v5.application.serialization.SerializationService
 import net.corda.v5.application.serialization.deserialize
 import net.corda.v5.application.utilities.unwrap
 import net.corda.v5.base.annotations.Suspendable
@@ -82,7 +83,10 @@ private constructor(
     lateinit var identityService: IdentityService
 
     @CordaInject
-    lateinit var signatureVerifier: TransactionSignatureVerificationService
+    lateinit var serializationService: SerializationService
+
+    @CordaInject
+    lateinit var signedKeyService: SignedKeyService
 
     @Suspendable
     override fun call(): AnonymousParty {
@@ -98,13 +102,13 @@ private constructor(
         val signedKeyForAccount = session.sendAndReceive<SignedKeyForAccount>(requestKey).unwrap { it }
         // We need to verify the signature of the response and check that the payload is equal to what we expect.
         debug(VERIFYING_KEY)
-        verifySignedChallengeResponseSignature(signatureVerifier, signedKeyForAccount)
+        signedKeyService.verifySignedChallengeResponseSignature(signedKeyForAccount)
         debug(KEY_VERIFIED)
         // Ensure the hash of both challenge response parameters matches the received hashed function
         debug(VERIFYING_CHALLENGE_RESPONSE)
         val additionalParam = signedKeyForAccount.additionalChallengeResponseParam
         val resultOfHashedParameters = challengeResponseParam.hashConcat(additionalParam)
-        require(resultOfHashedParameters == signedKeyForAccount.signedChallengeResponse.raw.deserialize()) {
+        require(resultOfHashedParameters == serializationService.deserialize(signedKeyForAccount.signedChallengeResponse.raw)) {
             "Challenge response invalid"
         }
         debug(CHALLENGE_RESPONSE_VERIFIED)
@@ -133,13 +137,16 @@ class ProvideKeyFlow(private val otherSession: FlowSession) : Flow<AnonymousPart
     @CordaInject
     lateinit var flowIdentity: FlowIdentity
 
+    @CordaInject
+    lateinit var signedKeyService: SignedKeyService
+
     @Suspendable
     override fun call(): AnonymousParty {
         val key = when (
             val request = otherSession.receive<SendRequestForKeyMapping>().unwrap { it }
         ) {
             is RequestKeyForUUID -> {
-                val signedKey = keyManagementService.createSignedOwnershipClaimFromUUID(
+                val signedKey = signedKeyService.createSignedOwnershipClaimFromUUID(
                     challengeResponseParam = request.challengeResponseParam,
                     uuid = request.externalId
                 )
@@ -148,7 +155,7 @@ class ProvideKeyFlow(private val otherSession: FlowSession) : Flow<AnonymousPart
                 signedKey.publicKey
             }
             is RequestForKnownKey -> {
-                val signedKey = keyManagementService.createSignedOwnershipClaimFromKnownKey(
+                val signedKey = signedKeyService.createSignedOwnershipClaimFromKnownKey(
                     challengeResponseParam = request.challengeResponseParam,
                     knownKey = request.knownKey
                 )
@@ -167,7 +174,7 @@ class ProvideKeyFlow(private val otherSession: FlowSession) : Flow<AnonymousPart
             is RequestFreshKey -> {
                 // No need to call RegisterKey as it's done by keyManagementService.freshKey.
                 val newKey = keyManagementService.freshKey()
-                val signedKey = keyManagementService.createSignedOwnershipClaimFromKnownKey(
+                val signedKey = signedKeyService.createSignedOwnershipClaimFromKnownKey(
                     challengeResponseParam = request.challengeResponseParam,
                     knownKey = newKey
                 )

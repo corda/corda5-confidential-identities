@@ -53,9 +53,6 @@ class ConfidentialMoveFlow(
     @CordaInject
     lateinit var vaultService: VaultService
 
-    @CordaInject
-    lateinit var transactionService: TransactionService
-
     @Suspendable
     override fun call() : SignedTransaction {
         val myIdentity = flowIdentity.ourIdentity
@@ -84,10 +81,9 @@ class ConfidentialMoveFlow(
             verify()
         }
 
-        val stx = transactionService.signInitial(tb)
         val targetSessions = mutableSetOf(flowMessaging.initiateFlow(targetConfidentialIdentity))
 
-        val fullySignedTx = flowEngine.subFlow(CollectSignaturesFlow(stx, targetSessions))
+        val fullySignedTx = flowEngine.subFlow(CollectSignaturesFlow(tb.sign(), targetSessions))
 
         return flowEngine.subFlow(FinalityFlow(fullySignedTx, targetSessions))
     }

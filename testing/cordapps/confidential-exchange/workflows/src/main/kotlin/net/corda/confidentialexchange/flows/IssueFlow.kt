@@ -30,9 +30,6 @@ class IssueFlow : Flow<SignedTransaction> {
     @CordaInject
     lateinit var networkMapCache: NotaryAwareNetworkMapCache
 
-    @CordaInject
-    lateinit var transactionService: TransactionService
-
     @Suspendable
     override fun call(): SignedTransaction {
         val myIdentity = flowIdentity.ourIdentity
@@ -47,7 +44,6 @@ class IssueFlow : Flow<SignedTransaction> {
             verify()
         }
 
-        val stx = transactionService.signInitial(tb)
-        return flowEngine.subFlow(FinalityFlow(stx, emptyList(), StatesToRecord.ALL_VISIBLE))
+        return flowEngine.subFlow(FinalityFlow(tb.sign(), emptyList(), StatesToRecord.ALL_VISIBLE))
     }
 }
