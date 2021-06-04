@@ -5,10 +5,10 @@ import com.r3.corda.lib.ci.workflows.SignedKeyForAccount
 import net.corda.v5.application.crypto.SignedData
 import net.corda.v5.application.flows.flowservices.dependencies.CordaFlowInjectable
 import net.corda.v5.application.flows.flowservices.dependencies.CordaInject
-import net.corda.v5.application.node.services.CordaService
-import net.corda.v5.application.node.services.KeyManagementService
-import net.corda.v5.application.node.services.TransactionSignatureVerificationService
-import net.corda.v5.application.serialization.SerializationService
+import net.corda.v5.application.services.CordaService
+import net.corda.v5.application.services.KeyManagementService
+import net.corda.v5.application.services.TransactionSignatureVerificationService
+import net.corda.v5.application.services.serialization.SerializationService
 import net.corda.v5.base.annotations.CordaInternal
 import net.corda.v5.base.annotations.VisibleForTesting
 import net.corda.v5.crypto.SecureHash

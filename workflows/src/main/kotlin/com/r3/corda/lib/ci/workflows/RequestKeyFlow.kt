@@ -6,16 +6,21 @@ import net.corda.v5.application.flows.FlowException
 import net.corda.v5.application.flows.FlowSession
 import net.corda.v5.application.flows.flowservices.FlowIdentity
 import net.corda.v5.application.flows.flowservices.dependencies.CordaInject
+import net.corda.v5.application.identity.AbstractParty
 import net.corda.v5.application.identity.AnonymousParty
+import net.corda.v5.application.identity.CordaX500Name
 import net.corda.v5.application.identity.Party
-import net.corda.v5.application.node.services.IdentityService
-import net.corda.v5.application.node.services.KeyManagementService
-import net.corda.v5.application.serialization.SerializationService
-import net.corda.v5.application.serialization.deserialize
+import net.corda.v5.application.identity.PartyAndReference
+import net.corda.v5.application.services.IdentityService
+import net.corda.v5.application.services.KeyManagementService
+import net.corda.v5.application.services.serialization.SerializationService
+import net.corda.v5.application.services.serialization.deserialize
 import net.corda.v5.application.utilities.unwrap
 import net.corda.v5.base.annotations.Suspendable
+import net.corda.v5.base.types.OpaqueBytes
 import net.corda.v5.base.util.contextLogger
 import net.corda.v5.crypto.SecureHash
+import net.corda.v5.crypto.toStringShort
 import net.corda.v5.ledger.UniqueIdentifier
 import java.security.PublicKey
 import java.util.*
@@ -120,7 +125,7 @@ private constructor(
             null -> identityService.registerKey(newKey, counterParty)
             else -> identityService.registerKey(newKey, counterParty, uuid)
         }
-        return AnonymousParty(newKey)
+        return AnonymousPartyImpl(newKey)
     }
 }
 
@@ -183,6 +188,17 @@ class ProvideKeyFlow(private val otherSession: FlowSession) : Flow<AnonymousPart
             }
         }
 
-        return AnonymousParty(key)
+        return AnonymousPartyImpl(key)
     }
+}
+
+private class AnonymousPartyImpl(override val owningKey: PublicKey) : AnonymousParty {
+    override fun nameOrNull(): CordaX500Name? = null
+    override fun ref(bytes: OpaqueBytes): PartyAndReference = PartyAndReference(this, bytes)
+    override fun toString() = "Anonymous(${owningKey.toStringShort()})"
+
+    /** Anonymised parties do not include any detail apart from owning key, so equality is dependent solely on the key */
+    override fun equals(other: Any?): Boolean = other === this || other is AbstractParty && other.owningKey == owningKey
+
+    override fun hashCode(): Int = owningKey.hashCode()
 }

@@ -43,9 +43,9 @@ class SampleFlowTests {
          */
         var stx: SignedTransaction? = null
         // Alice issues a state to be exchanged
-        val aliceKnownIds = alice().rpc {
+        val aliceKnownId = alice().rpc {
             stx = startFlowDynamic(IssueFlow::class.java).returnValue.getOrThrow()
-            nodeInfo().legalIdentities
+            nodeInfo().party
         }
         val stateLinearId = (stx!!.tx.outputStates.single() as ExchangeableState).linearId.toString()
 
@@ -53,25 +53,25 @@ class SampleFlowTests {
          * Verify three nodes are aware of each others public keys
          */
         // Verify bob knows alice's public key
-        val bobKnownIds = bob().rpc {
-            verifyKnownIdentity(aliceKnownIds)
-            nodeInfo().legalIdentities
+        val bobKnownId = bob().rpc {
+            verifyKnownIdentity(aliceKnownId)
+            nodeInfo().party
         }
 
         // Verify caroline knows both bob and alice's public keys
-        val carolineKnownIds = caroline().rpc {
-            verifyKnownIdentity(aliceKnownIds)
-            verifyKnownIdentity(bobKnownIds)
-            nodeInfo().legalIdentities
+        val carolineKnownId = caroline().rpc {
+            verifyKnownIdentity(aliceKnownId)
+            verifyKnownIdentity(bobKnownId)
+            nodeInfo().party
         }
 
         // Verify bob knows carolines's public key
-        bob().rpc { verifyKnownIdentity(carolineKnownIds) }
+        bob().rpc { verifyKnownIdentity(carolineKnownId) }
 
         // Verify alices knows both bob and caroline's public keys
         alice().rpc {
-            verifyKnownIdentity(carolineKnownIds)
-            verifyKnownIdentity(bobKnownIds)
+            verifyKnownIdentity(carolineKnownId)
+            verifyKnownIdentity(bobKnownId)
         }
 
         /**
@@ -82,7 +82,7 @@ class SampleFlowTests {
         stx = alice().rpc {
             startFlowDynamic(
                 ConfidentialMoveFlow::class.java,
-                bobKnownIds.first(),
+                bobKnownId,
                 stateLinearId
             ).returnValue.getOrThrow()
         }
@@ -100,7 +100,7 @@ class SampleFlowTests {
         stx = bob().rpc {
             startFlowDynamic(
                 ConfidentialMoveFlow::class.java,
-                carolineKnownIds.first(),
+                carolineKnownId,
                 stateLinearId
             ).returnValue.getOrThrow()
         }
@@ -116,7 +116,7 @@ class SampleFlowTests {
          * in the transaction, but bob should not be aware of a well known identity for the same public key.
          */
         caroline().rpc {
-            stx = startFlowDynamic(ConfidentialMoveFlow::class.java, aliceKnownIds.first(), stateLinearId).returnValue.getOrThrow()
+            stx = startFlowDynamic(ConfidentialMoveFlow::class.java, aliceKnownId, stateLinearId).returnValue.getOrThrow()
         }
         val anonAKnownByAAndC = (stx!!.tx.outputStates.single() as ExchangeableState).owner
 
@@ -130,7 +130,7 @@ class SampleFlowTests {
          */
         alice().rpc {
             verifyKnownIdentity(anonCKnownByBAndC, false)
-            startFlowDynamic(RequestConfidentialIdentityFlowSync::class.java, bobKnownIds.first(), listOf(anonCKnownByBAndC))
+            startFlowDynamic(RequestConfidentialIdentityFlowSync::class.java, bobKnownId, listOf(anonCKnownByBAndC))
             Thread.sleep(2.seconds.toMillis())
             verifyKnownIdentity(anonCKnownByBAndC, true)
         }

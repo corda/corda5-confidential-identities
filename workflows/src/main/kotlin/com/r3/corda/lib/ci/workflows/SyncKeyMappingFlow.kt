@@ -6,14 +6,14 @@ import net.corda.v5.application.flows.flowservices.FlowEngine
 import net.corda.v5.application.flows.flowservices.dependencies.CordaInject
 import net.corda.v5.application.identity.AbstractParty
 import net.corda.v5.application.identity.Party
-import net.corda.v5.application.node.services.IdentityService
-import net.corda.v5.application.node.services.NetworkMapCache
+import net.corda.v5.application.node.services.MemberLookupService
+import net.corda.v5.application.services.IdentityService
 import net.corda.v5.application.utilities.unwrap
 import net.corda.v5.base.annotations.Suspendable
 import net.corda.v5.base.util.contextLogger
 import net.corda.v5.ledger.contracts.ContractState
 import net.corda.v5.ledger.contracts.TransactionResolutionException
-import net.corda.v5.ledger.services.StateRefLoaderService
+import net.corda.v5.ledger.services.StateLoaderService
 import net.corda.v5.ledger.transactions.WireTransaction
 import java.security.PublicKey
 
@@ -61,10 +61,10 @@ private constructor(
     lateinit var identityService: IdentityService
 
     @CordaInject
-    lateinit var stateRefLoaderService: StateRefLoaderService
+    lateinit var stateLoaderService: StateLoaderService
 
     @CordaInject
-    lateinit var networkMapCache: NetworkMapCache
+    lateinit var memberLookupService: MemberLookupService
 
     @Suspendable
     override fun call() {
@@ -96,7 +96,7 @@ private constructor(
     private fun extractConfidentialIdentities(tx: WireTransaction): List<AbstractParty> {
         val inputStates: List<ContractState> = (tx.inputs.toSet()).mapNotNull {
             try {
-                stateRefLoaderService.loadState(it).state.data
+                stateLoaderService.loadState(it).state.data
             } catch (e: TransactionResolutionException) {
                 logger.warn("WARNING: Could not resolve state with StateRef $it")
                 null
@@ -106,7 +106,7 @@ private constructor(
         val identities: Set<AbstractParty> = states.flatMap(ContractState::participants).toSet()
 
         return identities
-            .filter { networkMapCache.getNodesByLegalIdentityKey(it.owningKey).isEmpty() }
+            .filter { memberLookupService.lookup(identities.first().owningKey) == null }
             .toList()
     }
 }

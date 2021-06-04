@@ -3,7 +3,7 @@ package net.corda.confidentialexchange.flows
 import net.corda.v5.application.flows.Flow
 import net.corda.v5.application.flows.StartableByRPC
 import net.corda.v5.application.flows.flowservices.dependencies.CordaInject
-import net.corda.v5.application.node.services.IdentityService
+import net.corda.v5.application.services.IdentityService
 import net.corda.v5.base.annotations.Suspendable
 import java.security.PublicKey
 

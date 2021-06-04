@@ -9,9 +9,8 @@ import net.corda.v5.application.flows.flowservices.FlowEngine
 import net.corda.v5.application.flows.flowservices.FlowIdentity
 import net.corda.v5.application.flows.flowservices.dependencies.CordaInject
 import net.corda.v5.base.annotations.Suspendable
-import net.corda.v5.ledger.services.NotaryAwareNetworkMapCache
+import net.corda.v5.ledger.services.NotaryLookupService
 import net.corda.v5.ledger.services.StatesToRecord
-import net.corda.v5.ledger.services.TransactionService
 import net.corda.v5.ledger.transactions.SignedTransaction
 import net.corda.v5.ledger.transactions.TransactionBuilderFactory
 
@@ -28,12 +27,12 @@ class IssueFlow : Flow<SignedTransaction> {
     lateinit var transactionBuilderFactory: TransactionBuilderFactory
 
     @CordaInject
-    lateinit var networkMapCache: NotaryAwareNetworkMapCache
+    lateinit var notaryLookupService: NotaryLookupService
 
     @Suspendable
     override fun call(): SignedTransaction {
         val myIdentity = flowIdentity.ourIdentity
-        val notary = networkMapCache.notaryIdentities.first()
+        val notary = notaryLookupService.notaryIdentities.first()
 
         val issuedState = ExchangeableState(myIdentity, myIdentity.anonymise())
 

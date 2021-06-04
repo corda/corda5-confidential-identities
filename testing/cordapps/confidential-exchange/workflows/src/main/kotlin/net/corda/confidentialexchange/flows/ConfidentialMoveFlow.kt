@@ -17,13 +17,13 @@ import net.corda.v5.application.flows.flowservices.FlowIdentity
 import net.corda.v5.application.flows.flowservices.FlowMessaging
 import net.corda.v5.application.flows.flowservices.dependencies.CordaInject
 import net.corda.v5.application.identity.Party
+import net.corda.v5.application.services.persistence.PersistenceService
 import net.corda.v5.base.annotations.Suspendable
-import net.corda.v5.ledger.services.NotaryAwareNetworkMapCache
-import net.corda.v5.ledger.services.TransactionService
-import net.corda.v5.ledger.services.VaultService
-import net.corda.v5.ledger.services.queryBy
-import net.corda.v5.ledger.services.vault.QueryCriteria
-import net.corda.v5.ledger.services.vault.builder
+import net.corda.v5.base.util.seconds
+import net.corda.v5.ledger.contracts.StateAndRef
+import net.corda.v5.ledger.services.NotaryLookupService
+import net.corda.v5.ledger.services.vault.IdentityStateAndRefPostProcessor
+import net.corda.v5.ledger.services.vault.StateStatus
 import net.corda.v5.ledger.transactions.SignedTransaction
 import net.corda.v5.ledger.transactions.TransactionBuilderFactory
 import java.util.*
@@ -45,29 +45,31 @@ class ConfidentialMoveFlow(
     lateinit var flowMessaging: FlowMessaging
 
     @CordaInject
-    lateinit var networkMapCache: NotaryAwareNetworkMapCache
+    lateinit var notaryLookupService: NotaryLookupService
 
     @CordaInject
     lateinit var transactionBuilderFactory: TransactionBuilderFactory
 
     @CordaInject
-    lateinit var vaultService: VaultService
+    lateinit var persistenceService: PersistenceService
 
     @Suspendable
     override fun call() : SignedTransaction {
         val myIdentity = flowIdentity.ourIdentity
-        val notary = networkMapCache.notaryIdentities.single()
+        val notary = notaryLookupService.notaryIdentities.single()
 
         // Create confidential key pair
         val targetConfidentialIdentity = flowEngine.subFlow(RequestKey(targetParty))
 
         // Retrieve the state to move
-        val oldState = builder {
-            val query = QueryCriteria.LinearStateQueryCriteria(
-                uuid = listOf(UUID.fromString(stateId))
-            )
-            vaultService.queryBy<ExchangeableState>(query)
-        }.states.single()
+        val cursor = persistenceService.query<StateAndRef<ExchangeableState>>(
+            "LinearState.findByUuidAndStateStatus",
+            mapOf("uuid" to UUID.fromString(stateId), "stateStatus" to StateStatus.UNCONSUMED),
+            IdentityStateAndRefPostProcessor.POST_PROCESSOR_NAME
+        )
+        val oldState = cursor.poll(1, 20.seconds)
+            .values
+            .single()
 
         val newState : ExchangeableState = oldState.state.data.copy(owner = targetConfidentialIdentity)
 
