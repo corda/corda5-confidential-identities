@@ -3,12 +3,12 @@ package com.r3.corda.lib.ci.workflows
 import net.corda.v5.application.flows.Flow
 import net.corda.v5.application.flows.FlowSession
 import net.corda.v5.application.flows.flowservices.FlowEngine
-import net.corda.v5.application.flows.flowservices.dependencies.CordaInject
+import net.corda.v5.application.injection.CordaInject
 import net.corda.v5.application.identity.AbstractParty
 import net.corda.v5.application.identity.Party
-import net.corda.v5.application.node.services.MemberLookupService
 import net.corda.v5.application.services.IdentityService
-import net.corda.v5.application.utilities.unwrap
+import net.corda.v5.application.flows.unwrap
+import net.corda.v5.application.services.MemberLookupService
 import net.corda.v5.base.annotations.Suspendable
 import net.corda.v5.base.util.contextLogger
 import net.corda.v5.ledger.contracts.ContractState
@@ -88,7 +88,7 @@ private constructor(
             req
         }
         val resolvedIds = requestedIdentities.map {
-            it.owningKey to identityService.wellKnownPartyFromAnonymous(it)
+            it.owningKey to identityService.partyFromAnonymous(it)
         }.toMap()
         session.send(resolvedIds)
     }
@@ -141,7 +141,7 @@ class SyncKeyMappingFlowHandler(private val otherSession: FlowSession) : Flow<Un
         debug(RECEIVING_IDENTITIES)
         val allConfidentialIds = otherSession.receive<List<AbstractParty>>().unwrap { it }
         val unknownIdentities = allConfidentialIds.filter {
-            identityService.wellKnownPartyFromAnonymous(it) == null
+            identityService.partyFromAnonymous(it) == null
         }
         otherSession.send(unknownIdentities)
         debug(RECEIVING_PARTIES)

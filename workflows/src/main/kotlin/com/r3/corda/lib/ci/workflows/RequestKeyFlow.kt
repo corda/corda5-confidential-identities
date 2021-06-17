@@ -5,7 +5,7 @@ import net.corda.v5.application.flows.Flow
 import net.corda.v5.application.flows.FlowException
 import net.corda.v5.application.flows.FlowSession
 import net.corda.v5.application.flows.flowservices.FlowIdentity
-import net.corda.v5.application.flows.flowservices.dependencies.CordaInject
+import net.corda.v5.application.injection.CordaInject
 import net.corda.v5.application.identity.AbstractParty
 import net.corda.v5.application.identity.AnonymousParty
 import net.corda.v5.application.identity.CordaX500Name
@@ -15,7 +15,7 @@ import net.corda.v5.application.services.IdentityService
 import net.corda.v5.application.services.KeyManagementService
 import net.corda.v5.application.services.serialization.SerializationService
 import net.corda.v5.application.services.serialization.deserialize
-import net.corda.v5.application.utilities.unwrap
+import net.corda.v5.application.flows.unwrap
 import net.corda.v5.base.annotations.Suspendable
 import net.corda.v5.base.types.OpaqueBytes
 import net.corda.v5.base.util.contextLogger
@@ -122,8 +122,8 @@ private constructor(
         val newKey = signedKeyForAccount.publicKey
         // Store a mapping of the key to the x500 name
         when (uuid) {
-            null -> identityService.registerKey(newKey, counterParty)
-            else -> identityService.registerKey(newKey, counterParty, uuid)
+            null -> identityService.registerKey(newKey, counterParty.name)
+            else -> identityService.registerKey(newKey, counterParty.name, uuid)
         }
         return AnonymousPartyImpl(newKey)
     }
@@ -167,10 +167,10 @@ class ProvideKeyFlow(private val otherSession: FlowSession) : Flow<AnonymousPart
                 otherSession.send(signedKey)
                 // Double check that the key has not already been registered to another node.
                 try {
-                    identityService.registerKey(request.knownKey, flowIdentity.ourIdentity)
+                    identityService.registerKey(request.knownKey, flowIdentity.ourIdentity.name)
                 } catch (e: Exception) {
                     throw FlowException(
-                        "Could not register a new key for party: ${flowIdentity.ourIdentity} as the provided public " +
+                        "Could not register a new key for party: ${flowIdentity.ourIdentity.name} as the provided public " +
                                 "key is already registered or registered to a different party."
                     )
                 }

@@ -2,7 +2,7 @@ package net.corda.confidentialexchange.flows
 
 import net.corda.v5.application.flows.Flow
 import net.corda.v5.application.flows.StartableByRPC
-import net.corda.v5.application.flows.flowservices.dependencies.CordaInject
+import net.corda.v5.application.injection.CordaInject
 import net.corda.v5.application.services.IdentityService
 import net.corda.v5.base.annotations.Suspendable
 import java.security.PublicKey
@@ -16,5 +16,7 @@ class VerifyPartyIsKnownFlow(
     lateinit var identityService: IdentityService
 
     @Suspendable
-    override fun call() =  identityService.partyFromKey(otherPartyKey) != null
+    override fun call() =  identityService.nameFromKey(otherPartyKey)?.let {
+        identityService.partyFromName(it)
+    } != null
 }

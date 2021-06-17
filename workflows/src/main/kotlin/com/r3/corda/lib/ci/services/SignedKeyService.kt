@@ -3,8 +3,8 @@ package com.r3.corda.lib.ci.services
 import com.r3.corda.lib.ci.workflows.ChallengeResponse
 import com.r3.corda.lib.ci.workflows.SignedKeyForAccount
 import net.corda.v5.application.crypto.SignedData
-import net.corda.v5.application.flows.flowservices.dependencies.CordaFlowInjectable
-import net.corda.v5.application.flows.flowservices.dependencies.CordaInject
+import net.corda.v5.application.injection.CordaFlowInjectable
+import net.corda.v5.application.injection.CordaInject
 import net.corda.v5.application.services.CordaService
 import net.corda.v5.application.services.KeyManagementService
 import net.corda.v5.application.services.TransactionSignatureVerificationService
