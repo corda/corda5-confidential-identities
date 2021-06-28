@@ -6,8 +6,8 @@ import net.corda.v5.application.crypto.SignedData
 import net.corda.v5.application.injection.CordaFlowInjectable
 import net.corda.v5.application.injection.CordaInject
 import net.corda.v5.application.services.CordaService
-import net.corda.v5.application.services.KeyManagementService
-import net.corda.v5.application.services.TransactionSignatureVerificationService
+import net.corda.v5.application.services.crypto.DigitalSignatureVerificationService
+import net.corda.v5.application.services.crypto.KeyManagementService
 import net.corda.v5.application.services.serialization.SerializationService
 import net.corda.v5.base.annotations.CordaInternal
 import net.corda.v5.base.annotations.VisibleForTesting
@@ -26,7 +26,7 @@ class SignedKeyService : CordaService, CordaFlowInjectable {
     lateinit var serializationService: SerializationService
 
     @CordaInject
-    lateinit var signatureVerifier: TransactionSignatureVerificationService
+    lateinit var signatureVerifier: DigitalSignatureVerificationService
 
     /**
      * Generates a fresh key pair and stores the mapping to the [UUID]. This key is used construct the [SignedKeyForAccount]
