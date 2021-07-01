@@ -5,6 +5,8 @@ import net.corda.v5.application.flows.Flow
 import net.corda.v5.application.flows.FlowException
 import net.corda.v5.application.flows.FlowSession
 import net.corda.v5.application.flows.flowservices.FlowIdentity
+import net.corda.v5.application.flows.receive
+import net.corda.v5.application.flows.sendAndReceive
 import net.corda.v5.application.flows.unwrap
 import net.corda.v5.application.identity.AnonymousParty
 import net.corda.v5.application.identity.Party
