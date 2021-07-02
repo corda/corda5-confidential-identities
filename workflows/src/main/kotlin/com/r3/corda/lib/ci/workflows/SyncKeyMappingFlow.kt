@@ -98,7 +98,7 @@ private constructor(
     private fun extractConfidentialIdentities(tx: WireTransaction): List<AbstractParty> {
         val inputStates: List<ContractState> = (tx.inputs.toSet()).mapNotNull {
             try {
-                stateLoaderService.loadState(it).state.data
+                stateLoaderService.load(it).state.data
             } catch (e: TransactionResolutionException) {
                 logger.warn("WARNING: Could not resolve state with StateRef $it")
                 null
