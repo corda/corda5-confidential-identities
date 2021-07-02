@@ -16,7 +16,11 @@ class VerifyPartyIsKnownFlow(
     lateinit var identityService: IdentityService
 
     @Suspendable
-    override fun call() =  identityService.nameFromKey(otherPartyKey)?.let {
-        identityService.partyFromName(it)
-    } != null
+    override fun call() : Boolean {
+        val nameFromKey = identityService.nameFromKey(otherPartyKey)
+        if (nameFromKey != null) {
+            return identityService.partyFromName(nameFromKey) != null
+        }
+        return false
+    }
 }
