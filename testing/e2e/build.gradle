@@ -24,6 +24,7 @@ dependencies {
     e2eTestImplementation "$corda_release_group:corda-dev-network-lib:$corda_release_version"
     e2eTestImplementation "$corda_release_group:corda-client-rpc:$corda_release_version"
     e2eTestImplementation "$corda_release_group:corda-legacy-api:$corda_release_version"
+    e2eTestImplementation "$corda_release_group:corda-client-extensions-rpc:$corda_release_version"
 
     e2eTestImplementation project(":testing:cordapps:confidential-exchange:workflows")
     e2eTestImplementation project(":testing:cordapps:confidential-exchange:contracts")

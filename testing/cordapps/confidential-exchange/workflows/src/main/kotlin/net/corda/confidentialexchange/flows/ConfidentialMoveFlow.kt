@@ -11,12 +11,17 @@ import net.corda.v5.application.flows.Flow
 import net.corda.v5.application.flows.FlowSession
 import net.corda.v5.application.flows.InitiatedBy
 import net.corda.v5.application.flows.InitiatingFlow
+import net.corda.v5.application.flows.JsonConstructor
+import net.corda.v5.application.flows.RpcStartFlowRequestParameters
 import net.corda.v5.application.flows.StartableByRPC
 import net.corda.v5.application.flows.flowservices.FlowEngine
 import net.corda.v5.application.flows.flowservices.FlowIdentity
 import net.corda.v5.application.flows.flowservices.FlowMessaging
+import net.corda.v5.application.identity.CordaX500Name
 import net.corda.v5.application.injection.CordaInject
-import net.corda.v5.application.identity.Party
+import net.corda.v5.application.services.IdentityService
+import net.corda.v5.application.services.json.JsonMarshallingService
+import net.corda.v5.application.services.json.parseJson
 import net.corda.v5.application.services.persistence.PersistenceService
 import net.corda.v5.base.annotations.Suspendable
 import net.corda.v5.base.util.seconds
@@ -30,9 +35,8 @@ import java.util.*
 
 @StartableByRPC
 @InitiatingFlow
-class ConfidentialMoveFlow(
-    val targetParty: Party,
-    val stateId : String,
+class ConfidentialMoveFlow @JsonConstructor constructor(
+    val jsonParams: RpcStartFlowRequestParameters
 ) : Flow<SignedTransaction> {
 
     @CordaInject
@@ -53,8 +57,23 @@ class ConfidentialMoveFlow(
     @CordaInject
     lateinit var persistenceService: PersistenceService
 
+    @CordaInject
+    lateinit var jsonMarshallingService: JsonMarshallingService
+
+    @CordaInject
+    lateinit var identityService: IdentityService
+
+
     @Suspendable
     override fun call() : SignedTransaction {
+        val params : Map<String, String> = jsonMarshallingService.parseJson(jsonParams.parametersInJson)
+        val recipient: CordaX500Name = CordaX500Name.parse(params["recipient"]!!)
+        val linearId : String = params["linearId"]!!
+        val targetParty = identityService.partyFromName(recipient)
+        require(targetParty != null) {
+            "Target party not found for provided CordaX500Name: [$recipient]."
+        }
+
         val myIdentity = flowIdentity.ourIdentity
         val notary = notaryLookupService.notaryIdentities.single()
 
@@ -64,7 +83,7 @@ class ConfidentialMoveFlow(
         // Retrieve the state to move
         val cursor = persistenceService.query<StateAndRef<ExchangeableState>>(
             "LinearState.findByUuidAndStateStatus",
-            mapOf("uuid" to UUID.fromString(stateId), "stateStatus" to StateStatus.UNCONSUMED),
+            mapOf("uuid" to UUID.fromString(linearId), "stateStatus" to StateStatus.UNCONSUMED),
             IdentityStateAndRefPostProcessor.POST_PROCESSOR_NAME
         )
         val oldState = cursor.poll(1, 20.seconds)

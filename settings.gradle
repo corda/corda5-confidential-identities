@@ -8,4 +8,4 @@ include 'testing:cordapps:confidential-exchange'
 include 'testing:cordapps:confidential-exchange:contracts'
 include 'testing:cordapps:confidential-exchange:workflows'
 
-include 'testing:e2eTest'
+include 'testing:e2e'
