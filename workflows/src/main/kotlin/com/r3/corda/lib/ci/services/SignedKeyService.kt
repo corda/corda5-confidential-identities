@@ -7,26 +7,17 @@ import net.corda.v5.application.injection.CordaFlowInjectable
 import net.corda.v5.application.injection.CordaInject
 import net.corda.v5.application.services.CordaService
 import net.corda.v5.application.services.crypto.DigitalSignatureVerificationService
+import net.corda.v5.application.services.crypto.HashingService
 import net.corda.v5.application.services.crypto.KeyManagementService
 import net.corda.v5.application.services.serialization.SerializationService
 import net.corda.v5.base.annotations.CordaInternal
 import net.corda.v5.base.annotations.VisibleForTesting
-import net.corda.v5.crypto.SecureHash
-import net.corda.v5.crypto.hash
+import net.corda.v5.crypto.DigestAlgorithmName
 import java.security.PublicKey
 import java.security.SignatureException
 import java.util.*
 
-class SignedKeyService : CordaService, CordaFlowInjectable {
-
-    @CordaInject
-    lateinit var keyManagementService: KeyManagementService
-
-    @CordaInject
-    lateinit var serializationService: SerializationService
-
-    @CordaInject
-    lateinit var signatureVerifier: DigitalSignatureVerificationService
+interface SignedKeyService : CordaService, CordaFlowInjectable {
 
     /**
      * Generates a fresh key pair and stores the mapping to the [UUID]. This key is used construct the [SignedKeyForAccount]
@@ -41,10 +32,7 @@ class SignedKeyService : CordaService, CordaFlowInjectable {
     fun createSignedOwnershipClaimFromUUID(
         challengeResponseParam: ChallengeResponse,
         uuid: UUID
-    ): SignedKeyForAccount {
-        val newKey = keyManagementService.freshKey(uuid)
-        return concatChallengeResponseAndSign(challengeResponseParam, newKey)
-    }
+    ): SignedKeyForAccount
 
     /**
      * Returns the [SignedKeyForAccount] containing the known [PublicKey], signed data structure and additional
@@ -56,6 +44,45 @@ class SignedKeyService : CordaService, CordaFlowInjectable {
     @CordaInternal
     @VisibleForTesting
     fun createSignedOwnershipClaimFromKnownKey(
+        challengeResponseParam: ChallengeResponse,
+        knownKey: PublicKey
+    ): SignedKeyForAccount
+
+    /**
+     * Verifies the signature on the used to sign the [ChallengeResponse].
+     */
+    @CordaInternal
+    @VisibleForTesting
+    fun verifySignedChallengeResponseSignature(signedKeyForAccount: SignedKeyForAccount)
+}
+
+class SignedKeyServiceImpl : SignedKeyService {
+
+    @CordaInject
+    lateinit var keyManagementService: KeyManagementService
+
+    @CordaInject
+    lateinit var serializationService: SerializationService
+
+    @CordaInject
+    lateinit var signatureVerifier: DigitalSignatureVerificationService
+
+    @CordaInject
+    lateinit var hashingService: HashingService
+
+    @CordaInternal
+    @VisibleForTesting
+    override fun createSignedOwnershipClaimFromUUID(
+        challengeResponseParam: ChallengeResponse,
+        uuid: UUID
+    ): SignedKeyForAccount {
+        val newKey = keyManagementService.freshKey(uuid)
+        return concatChallengeResponseAndSign(challengeResponseParam, newKey)
+    }
+
+    @CordaInternal
+    @VisibleForTesting
+    override fun createSignedOwnershipClaimFromKnownKey(
         challengeResponseParam: ChallengeResponse,
         knownKey: PublicKey
     ): SignedKeyForAccount {
@@ -72,23 +99,20 @@ class SignedKeyService : CordaService, CordaFlowInjectable {
         key: PublicKey
     ): SignedKeyForAccount {
         // Introduce a second parameter to prevent signing over some malicious transaction ID which may be in the form of a SHA256 hash
-        val additionalParameter = SecureHash.randomSHA256()
-        val hashOfBothParameters = challengeResponseParam.hashConcat(additionalParameter)
-        val keySig = keyManagementService.sign(serializationService.serialize(hashOfBothParameters).hash.bytes, key)
+        val additionalParameter = hashingService.randomHash(DigestAlgorithmName.SHA2_256)
+        val hashOfBothParameters = hashingService.concatenate(challengeResponseParam, additionalParameter)
+        val keySig = keyManagementService.sign(hashingService.hash(serializationService.serialize(hashOfBothParameters)).bytes, key)
         // Sign the challengeResponse with the newly generated key
         val signedData = SignedData(serializationService.serialize(hashOfBothParameters), keySig)
         return SignedKeyForAccount(key, signedData, additionalParameter)
     }
 
-    /**
-     * Verifies the signature on the used to sign the [ChallengeResponse].
-     */
     @CordaInternal
     @VisibleForTesting
-    fun verifySignedChallengeResponseSignature(signedKeyForAccount: SignedKeyForAccount) {
+    override fun verifySignedChallengeResponseSignature(signedKeyForAccount: SignedKeyForAccount) {
         try {
             with(signedKeyForAccount.signedChallengeResponse) {
-                signatureVerifier.verify(sig.by, sig.bytes, raw.hash.bytes)
+                signatureVerifier.verify(sig.by, sig.bytes, hashingService.hash(raw).bytes)
             }
         } catch (ex: SignatureException) {
             throw SignatureException("The signature on the object does not match that of the expected public key signature", ex)

@@ -12,12 +12,13 @@ import net.corda.v5.application.identity.AnonymousParty
 import net.corda.v5.application.identity.Party
 import net.corda.v5.application.injection.CordaInject
 import net.corda.v5.application.services.IdentityService
+import net.corda.v5.application.services.crypto.HashingService
 import net.corda.v5.application.services.crypto.KeyManagementService
 import net.corda.v5.application.services.serialization.SerializationService
 import net.corda.v5.application.services.serialization.deserialize
 import net.corda.v5.base.annotations.Suspendable
 import net.corda.v5.base.util.contextLogger
-import net.corda.v5.crypto.SecureHash
+import net.corda.v5.crypto.DigestAlgorithmName
 import net.corda.v5.ledger.UniqueIdentifier
 import java.security.PublicKey
 import java.util.*
@@ -90,10 +91,13 @@ private constructor(
     @CordaInject
     lateinit var signedKeyService: SignedKeyService
 
+    @CordaInject
+    lateinit var hashingService: HashingService
+
     @Suspendable
     override fun call(): AnonymousParty {
         debug(REQUESTING_KEY)
-        val challengeResponseParam = SecureHash.randomSHA256()
+        val challengeResponseParam = hashingService.randomHash(DigestAlgorithmName.SHA2_256)
         // Handle whether a key is already specified or not and whether a UUID is specified, or not.
         val requestKey = when {
             key == null && uuid != null -> RequestKeyForUUID(challengeResponseParam, uuid)
@@ -109,7 +113,7 @@ private constructor(
         // Ensure the hash of both challenge response parameters matches the received hashed function
         debug(VERIFYING_CHALLENGE_RESPONSE)
         val additionalParam = signedKeyForAccount.additionalChallengeResponseParam
-        val resultOfHashedParameters = challengeResponseParam.hashConcat(additionalParam)
+        val resultOfHashedParameters = hashingService.concatenate(challengeResponseParam, additionalParam)
         require(resultOfHashedParameters == serializationService.deserialize(signedKeyForAccount.signedChallengeResponse.raw)) {
             "Challenge response invalid"
         }

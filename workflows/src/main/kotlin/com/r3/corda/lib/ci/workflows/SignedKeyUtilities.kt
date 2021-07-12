@@ -9,7 +9,7 @@ import java.util.*
 /**
  * Random number used for authentication of communication between flow sessions.
  */
-typealias ChallengeResponse = SecureHash.SHA256
+typealias ChallengeResponse = SecureHash
 
 /**
  * Parent class of all classes that can be shared between flow sessions when requesting [PublicKey] to [Party] mappings in
