@@ -5,6 +5,5 @@ cordaPipeline(
     // TODO: Enable e2e
     //runE2eTests: true,
     //e2eTestName: 'corda5-confidential-identities-e2e-tests',
-    // TODO: Enable nexus
     nexusAppId: 'com.r3.corda.lib.ci-corda-5'
     )
