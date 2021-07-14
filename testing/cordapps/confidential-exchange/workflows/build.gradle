@@ -6,8 +6,8 @@ plugins {
 dependencies {
     cordaProvided "$corda_release_group:corda-ledger:$corda_release_version"
     cordaProvided "$corda_release_group:corda-application:$corda_release_version"
-    cordaProvided "$corda_release_group:corda-flows:$corda_release_version"
 
+    cordapp "$corda_release_group:corda-flows:$corda_release_version"
     cordapp project(":testing:cordapps:confidential-exchange:contracts")
     cordapp project(":ci-workflows")
 }
