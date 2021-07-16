@@ -50,7 +50,7 @@ subprojects {
         maven { url "$artifactoryContextUrl/corda-dependencies" }
         //needed for C5 binaries
         maven {
-            url = "$artifactoryContextUrl/corda-os-maven-unstable"
+            url = "$artifactoryContextUrl/corda-os-maven-stable-local"
             credentials {
                 username = cordaArtifactoryUsername
                 password = cordaArtifactoryPassword
