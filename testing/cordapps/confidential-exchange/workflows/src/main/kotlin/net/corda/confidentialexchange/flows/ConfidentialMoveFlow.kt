@@ -128,6 +128,7 @@ class ConfidentialMoveResponseFlow(private val counterPartySession: FlowSession)
     @Suspendable
     override fun call() {
         val signTransactionFlow = object : SignTransactionFlow(counterPartySession) {
+            @Suspendable
             override fun checkTransaction(stx: SignedTransaction) {
                 // For test purposes we are assuming the previous owner was anonymous and there was a single input state
                 val state = stateLoaderService.load(stx.inputs[0]).state.data as ExchangeableState
