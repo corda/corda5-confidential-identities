@@ -5,7 +5,6 @@ import com.google.gson.JsonParser
 import net.corda.client.rpc.flow.FlowStarterRPCOps
 import net.corda.confidentialexchange.flows.ConfidentialMoveFlow
 import net.corda.confidentialexchange.flows.IssueFlow
-import net.corda.confidentialexchange.flows.RequestConfidentialIdentityFlowSync
 import net.corda.test.dev.network.Node
 import net.corda.test.dev.network.httpRpcClient
 import net.corda.test.dev.network.withFlow
@@ -29,7 +28,6 @@ class SampleFlowTests {
                     .forEach {
                         it.withFlow<IssueFlow>()
                             .withFlow<ConfidentialMoveFlow>()
-                            .withFlow<RequestConfidentialIdentityFlowSync>()
                     }
             }
         }
