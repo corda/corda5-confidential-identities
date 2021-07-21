@@ -2,7 +2,6 @@ package net.corda.confidentialexchange.states
 
 import net.corda.confidentialexchange.contracts.ExchangeableStateContract
 import net.corda.v5.application.identity.AbstractParty
-import net.corda.v5.application.identity.AnonymousParty
 import net.corda.v5.application.identity.Party
 import net.corda.v5.application.utilities.JsonRepresentable
 import net.corda.v5.ledger.UniqueIdentifier
@@ -12,7 +11,7 @@ import net.corda.v5.ledger.contracts.LinearState
 @BelongsToContract(ExchangeableStateContract::class)
 data class ExchangeableState(
     val issuer : Party,
-    val owner : AnonymousParty,
+    val owner : AbstractParty,
     override val linearId: UniqueIdentifier = UniqueIdentifier()
 ) : LinearState, JsonRepresentable {
 

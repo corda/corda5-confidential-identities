@@ -1,6 +1,7 @@
 package net.corda.confidentialexchange.flows
 
 import com.r3.corda.lib.ci.workflows.RequestKey
+import com.r3.corda.lib.ci.workflows.SyncKeyMappingInitiator
 import net.corda.confidentialexchange.contracts.ExchangeableStateContract
 import net.corda.confidentialexchange.states.ExchangeableState
 import net.corda.systemflows.CollectSignaturesFlow
@@ -17,6 +18,7 @@ import net.corda.v5.application.flows.StartableByRPC
 import net.corda.v5.application.flows.flowservices.FlowEngine
 import net.corda.v5.application.flows.flowservices.FlowIdentity
 import net.corda.v5.application.flows.flowservices.FlowMessaging
+import net.corda.v5.application.identity.AnonymousParty
 import net.corda.v5.application.identity.CordaX500Name
 import net.corda.v5.application.injection.CordaInject
 import net.corda.v5.application.services.IdentityService
@@ -30,6 +32,7 @@ import net.corda.v5.ledger.services.NotaryLookupService
 import net.corda.v5.ledger.services.vault.IdentityStateAndRefPostProcessor
 import net.corda.v5.ledger.services.vault.StateStatus
 import net.corda.v5.ledger.transactions.SignedTransaction
+import net.corda.v5.ledger.transactions.SignedTransactionDigest
 import net.corda.v5.ledger.transactions.TransactionBuilderFactory
 import java.util.*
 
@@ -37,7 +40,7 @@ import java.util.*
 @InitiatingFlow
 class ConfidentialMoveFlow @JsonConstructor constructor(
     val jsonParams: RpcStartFlowRequestParameters
-) : Flow<SignedTransaction> {
+) : Flow<SignedTransactionDigest> {
 
     @CordaInject
     lateinit var flowIdentity: FlowIdentity
@@ -65,7 +68,7 @@ class ConfidentialMoveFlow @JsonConstructor constructor(
 
 
     @Suspendable
-    override fun call() : SignedTransaction {
+    override fun call() : SignedTransactionDigest {
         val params : Map<String, String> = jsonMarshallingService.parseJson(jsonParams.parametersInJson)
         val recipient: CordaX500Name = CordaX500Name.parse(params["recipient"]!!)
         val linearId : String = params["linearId"]!!
@@ -102,11 +105,18 @@ class ConfidentialMoveFlow @JsonConstructor constructor(
             verify()
         }
 
-        val targetSessions = mutableSetOf(flowMessaging.initiateFlow(targetConfidentialIdentity))
+        val targetSessions = mutableSetOf(
+            flowMessaging.initiateFlow(targetConfidentialIdentity)
+        )
 
         val fullySignedTx = flowEngine.subFlow(CollectSignaturesFlow(tb.sign(), targetSessions))
 
-        return flowEngine.subFlow(FinalityFlow(fullySignedTx, targetSessions))
+        val tx = flowEngine.subFlow(FinalityFlow(fullySignedTx, targetSessions))
+        return SignedTransactionDigest(
+            tx.id,
+            listOf(newState.toJsonString()),
+            tx.sigs
+        )
     }
 }
 
@@ -119,6 +129,13 @@ class ConfidentialMoveResponseFlow(private val counterPartySession: FlowSession)
     override fun call() {
         val signTransactionFlow = object : SignTransactionFlow(counterPartySession) {
             override fun checkTransaction(stx: SignedTransaction) {
+                // For test purposes we are assuming the previous owner was anonymous and there was a single input state
+                val state = stateLoaderService.load(stx.inputs[0]).state.data as ExchangeableState
+                require(state.owner is AnonymousParty)
+
+                // share the confidential identity used for the input state
+                flowEngine.subFlow(SyncKeyMappingInitiator(counterPartySession.counterparty, listOf(state.owner)))
+
                 transactionMappingService.toLedgerTransaction(stx, false)
             }
         }

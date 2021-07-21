@@ -13,12 +13,13 @@ import net.corda.v5.application.injection.CordaInject
 import net.corda.v5.base.annotations.Suspendable
 import net.corda.v5.ledger.services.NotaryLookupService
 import net.corda.v5.ledger.services.StatesToRecord
+import net.corda.v5.ledger.transactions.SignedTransactionDigest
 import net.corda.v5.ledger.transactions.TransactionBuilderFactory
 
 @StartableByRPC
 class IssueFlow @JsonConstructor constructor(
     @Suppress("UNUSED") val inputJson: RpcStartFlowRequestParameters
-): Flow<ExchangeableState> {
+): Flow<SignedTransactionDigest> {
 
     @CordaInject
     lateinit var flowIdentity: FlowIdentity
@@ -33,7 +34,7 @@ class IssueFlow @JsonConstructor constructor(
     lateinit var notaryLookupService: NotaryLookupService
 
     @Suspendable
-    override fun call(): ExchangeableState {
+    override fun call(): SignedTransactionDigest {
         val myIdentity = flowIdentity.ourIdentity
         val notary = notaryLookupService.notaryIdentities.first()
 
@@ -45,7 +46,11 @@ class IssueFlow @JsonConstructor constructor(
             addCommand(Commands.Issue(), myIdentity.owningKey)
             verify()
         }
-        flowEngine.subFlow(FinalityFlow(tb.sign(), emptyList(), StatesToRecord.ALL_VISIBLE))
-        return issuedState
+        val tx = flowEngine.subFlow(FinalityFlow(tb.sign(), emptyList(), StatesToRecord.ALL_VISIBLE))
+        return SignedTransactionDigest(
+            tx.id,
+            listOf(issuedState.toJsonString()),
+            tx.sigs
+        )
     }
 }
