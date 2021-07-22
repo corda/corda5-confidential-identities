@@ -14,7 +14,7 @@ dependencies {
 
 cordapp {
     targetPlatformVersion corda_platform_version as Integer
-    minimumPlatformVersion 11
+    minimumPlatformVersion corda_platform_version.toInteger()
     workflow {
         name "Corda Confidential Identities - Confidential Exchange Workflows"
         versionId 1

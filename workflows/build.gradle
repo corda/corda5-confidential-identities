@@ -6,7 +6,7 @@ apply plugin: 'jacoco'
 
 cordapp {
     targetPlatformVersion corda_platform_version.toInteger()
-    minimumPlatformVersion 11
+    minimumPlatformVersion corda_platform_version.toInteger()
 
     signing {
         enabled = false
