@@ -7,6 +7,7 @@ import net.corda.confidentialexchange.states.ExchangeableState
 import net.corda.systemflows.CollectSignaturesFlow
 import net.corda.systemflows.FinalityFlow
 import net.corda.systemflows.ReceiveFinalityFlow
+import net.corda.systemflows.SendTransactionFlow
 import net.corda.systemflows.SignTransactionFlow
 import net.corda.v5.application.flows.Flow
 import net.corda.v5.application.flows.FlowSession
@@ -72,6 +73,8 @@ class ConfidentialMoveFlow @JsonConstructor constructor(
         val params : Map<String, String> = jsonMarshallingService.parseJson(jsonParams.parametersInJson)
         val recipient: CordaX500Name = CordaX500Name.parse(params["recipient"]!!)
         val linearId : String = params["linearId"]!!
+        val observer : String? = params["observer"]
+
         val targetParty = identityService.partyFromName(recipient)
         require(targetParty != null) {
             "Target party not found for provided CordaX500Name: [$recipient]."
@@ -112,6 +115,16 @@ class ConfidentialMoveFlow @JsonConstructor constructor(
         val fullySignedTx = flowEngine.subFlow(CollectSignaturesFlow(tb.sign(), targetSessions))
 
         val tx = flowEngine.subFlow(FinalityFlow(fullySignedTx, targetSessions))
+
+        // Broadcast transaction to observer
+        observer?.let {
+            identityService.partyFromName(CordaX500Name.parse(observer))?.let {
+                // share confidential identities before sending
+                flowEngine.subFlow(SyncKeyMappingInitiator(it, tx.tx))
+                flowEngine.subFlow(SendTransactionFlow(flowMessaging.initiateFlow(it), tx))
+            }
+        }
+
         return SignedTransactionDigest(
             tx.id,
             listOf(newState.toJsonString()),

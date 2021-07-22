@@ -15,7 +15,7 @@ import kotlin.reflect.KClass
 internal fun Node.getX500Name(): CordaX500Name =
 	httpRpcClient<MembershipGroupRPCOps, CordaX500Name> { getMyMemberInfo().x500Name }
 
-internal fun FlowStarterRPCOps.runFlow(flowClass: KClass<*>, parameters: Map<Any, Any>): RpcStartFlowResponse {
+internal fun FlowStarterRPCOps.runFlow(flowClass: KClass<*>, parameters: Map<String, String>): RpcStartFlowResponse {
 	val clientId = "client-${UUID.randomUUID()}"
 	val parametersInJson = GsonBuilder().create().toJson(parameters)
 
