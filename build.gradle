@@ -27,7 +27,7 @@ plugins {
     id 'jacoco'
     id "com.jfrog.artifactory" version "$jfrogArtifactoryPluginVersion"
     id 'io.gitlab.arturbosch.detekt' version "$detektVersion"
-    id 'java'
+    id 'java-library'
 }
 
 subprojects {
