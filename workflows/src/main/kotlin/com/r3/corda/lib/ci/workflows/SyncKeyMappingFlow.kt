@@ -108,7 +108,7 @@ private constructor(
         val identities: Set<AbstractParty> = states.flatMap(ContractState::participants).toSet()
 
         return identities
-            .filter { memberLookupService.lookup(identities.first().owningKey) == null }
+            .filter { memberLookupService.lookup(it.owningKey) == null }
             .toList()
     }
 }
