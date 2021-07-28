@@ -46,11 +46,11 @@ class IssueFlow @JsonConstructor constructor(
             addCommand(Commands.Issue(), myIdentity.owningKey)
             verify()
         }
-        val tx = flowEngine.subFlow(FinalityFlow(tb.sign(), emptyList(), StatesToRecord.ALL_VISIBLE))
+        val notarisedTx = flowEngine.subFlow(FinalityFlow(tb.sign(), emptyList(), StatesToRecord.ALL_VISIBLE))
         return SignedTransactionDigest(
-            tx.id,
+            notarisedTx.id,
             listOf(issuedState.toJsonString()),
-            tx.sigs
+            notarisedTx.sigs
         )
     }
 }

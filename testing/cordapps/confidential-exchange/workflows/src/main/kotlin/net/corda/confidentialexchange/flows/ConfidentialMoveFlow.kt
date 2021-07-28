@@ -114,21 +114,21 @@ class ConfidentialMoveFlow @JsonConstructor constructor(
 
         val fullySignedTx = flowEngine.subFlow(CollectSignaturesFlow(tb.sign(), targetSessions))
 
-        val tx = flowEngine.subFlow(FinalityFlow(fullySignedTx, targetSessions))
+        val notarisedTx = flowEngine.subFlow(FinalityFlow(fullySignedTx, targetSessions))
 
         // Broadcast transaction to observer
         observer?.let {
             identityService.partyFromName(CordaX500Name.parse(observer))?.let {
                 // share confidential identities before sending
-                flowEngine.subFlow(SyncKeyMappingInitiator(it, tx.tx))
-                flowEngine.subFlow(SendTransactionFlow(flowMessaging.initiateFlow(it), tx))
+                flowEngine.subFlow(SyncKeyMappingInitiator(it, notarisedTx.tx))
+                flowEngine.subFlow(SendTransactionFlow(flowMessaging.initiateFlow(it), notarisedTx))
             }
         }
 
         return SignedTransactionDigest(
-            tx.id,
+            notarisedTx.id,
             listOf(newState.toJsonString()),
-            tx.sigs
+            notarisedTx.sigs
         )
     }
 }

@@ -41,7 +41,7 @@ class RequestKeyForUUIDInitiator(private val otherParty: Party, private val uuid
  * Responder flow to [RequestKeyForUUID].
  */
 @InitiatedBy(RequestKeyForUUIDInitiator::class)
-class RequestKeyForUUIDResponder(private val otherSession: FlowSession) : AbstractInitiatingFlow<Unit>() {
+class RequestKeyForUUIDResponder(private val otherSession: FlowSession) : SubFlowCallerFlow<Unit>() {
     @Suspendable
     override fun call() {
         subFlow(ProvideKeyFlow(otherSession))
@@ -70,7 +70,7 @@ class VerifyAndAddKey(private val otherParty: Party, private val key: PublicKey)
  * Responder flow to [VerifyAndAddKey].
  */
 @InitiatedBy(VerifyAndAddKey::class)
-class VerifyAndAddKeyResponder(private val otherSession: FlowSession) : AbstractInitiatingFlow<Unit>() {
+class VerifyAndAddKeyResponder(private val otherSession: FlowSession) : SubFlowCallerFlow<Unit>() {
     @Suspendable
     override fun call() {
         subFlow(ProvideKeyFlow(otherSession))
@@ -100,7 +100,7 @@ class RequestKey(private val otherParty: Party) : AbstractInitiatingFlow<Anonymo
  * Responder flow to [RequestKey].
  */
 @InitiatedBy(RequestKey::class)
-class RequestKeyResponder(private val otherSession: FlowSession) : AbstractInitiatingFlow<Unit>() {
+class RequestKeyResponder(private val otherSession: FlowSession) : SubFlowCallerFlow<Unit>() {
     @Suspendable
     override fun call() {
         subFlow(ProvideKeyFlow(otherSession))
@@ -149,22 +149,24 @@ private constructor(
  * Responder flow to [SyncKeyMappingInitiator].
  */
 @InitiatedBy(SyncKeyMappingInitiator::class)
-class SyncKeyMappingResponder(private val otherSession: FlowSession) : AbstractInitiatingFlow<Unit>() {
+class SyncKeyMappingResponder(private val otherSession: FlowSession) : SubFlowCallerFlow<Unit>() {
     @Suspendable
     override fun call() {
         subFlow(SyncKeyMappingFlowHandler(otherSession))
     }
 }
 
-abstract class AbstractInitiatingFlow<T> : Flow<T> {
+abstract class SubFlowCallerFlow<T> : Flow<T> {
     @CordaInject
     lateinit var flowEngine: FlowEngine
 
-    @CordaInject
-    lateinit var flowMessaging: FlowMessaging
-
     @Suspendable
     fun <R> subFlow(flow: Flow<R>) = flowEngine.subFlow(flow)
+}
+
+abstract class AbstractInitiatingFlow<T> : SubFlowCallerFlow<T>() {
+    @CordaInject
+    lateinit var flowMessaging: FlowMessaging
 
     @Suspendable
     fun initiateFlow(otherParty: Party) = flowMessaging.initiateFlow(otherParty)
