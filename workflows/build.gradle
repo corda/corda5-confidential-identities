@@ -7,9 +7,6 @@ plugins {
 cordapp {
     targetPlatformVersion corda_platform_version.toInteger()
 
-    signing {
-        enabled = false
-    }
     workflow {
         name = 'Confidential Identities Workflows'
         versionId = 2
@@ -49,7 +46,6 @@ dependencies {
     // Corda dependencies.
     cordaProvided "$corda_release_group:corda-application:$corda_release_version"
     cordaProvided "$corda_release_group:corda-ledger:$corda_release_version"
-    cordaProvided "$corda_release_group:corda-ledger-internal:$corda_release_version"
     cordaProvided "$corda_release_group:corda-crypto-api:$corda_release_version"
 
     testImplementation "org.assertj:assertj-core:$assertj_version"
