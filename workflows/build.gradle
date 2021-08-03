@@ -1,12 +1,11 @@
 plugins {
     id 'net.corda.plugins.cordapp-cpk'
+    id 'org.jetbrains.kotlin.jvm'
+    id 'jacoco'
 }
-
-apply plugin: 'jacoco'
 
 cordapp {
     targetPlatformVersion corda_platform_version.toInteger()
-    minimumPlatformVersion corda_platform_version.toInteger()
 
     signing {
         enabled = false
@@ -19,14 +18,11 @@ cordapp {
     }
 }
 
-jar.baseName = "ci-workflows"
+tasks.named('jar', Jar) {
+    archiveBaseName = "ci-workflows"
+}
 
 sourceSets {
-    main {
-        resources {
-            srcDir rootProject.file("config/dev")
-        }
-    }
     test {
         resources {
             srcDir rootProject.file("config/test")
@@ -42,13 +38,13 @@ sourceSets {
 }
 
 configurations {
-    integrationTestCompile.extendsFrom testCompile
-    integrationTestRuntime.extendsFrom testRuntime
+    integrationTestImplementation.extendsFrom testImplementation
+    integrationTestRuntimeOnly.extendsFrom testRuntimeOnly
 }
 
 dependencies {
-    compile "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlin_version"
-    testCompile "org.jetbrains.kotlin:kotlin-test:$kotlin_version"
+    implementation "net.corda.kotlin:kotlin-stdlib-jdk8-osgi:$kotlin_version"
+    testImplementation "org.jetbrains.kotlin:kotlin-test:$kotlin_version"
 
     // Corda dependencies.
     cordaProvided "$corda_release_group:corda-application:$corda_release_version"

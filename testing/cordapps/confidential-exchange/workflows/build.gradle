@@ -22,6 +22,6 @@ cordapp {
     }
 }
 
-jar {
+tasks.named('jar', Jar) {
     archiveBaseName = 'corda-ci-confidentialexchange-workflows'
 }
