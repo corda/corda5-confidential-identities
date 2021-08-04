@@ -7,6 +7,7 @@ import net.corda.confidentialexchange.states.ExchangeableState
 import net.corda.systemflows.CollectSignaturesFlow
 import net.corda.systemflows.FinalityFlow
 import net.corda.systemflows.ReceiveFinalityFlow
+import net.corda.systemflows.ReceiveTransactionFlow
 import net.corda.systemflows.SendTransactionFlow
 import net.corda.systemflows.SignTransactionFlow
 import net.corda.v5.application.flows.Flow
@@ -21,6 +22,7 @@ import net.corda.v5.application.flows.flowservices.FlowIdentity
 import net.corda.v5.application.flows.flowservices.FlowMessaging
 import net.corda.v5.application.identity.AnonymousParty
 import net.corda.v5.application.identity.CordaX500Name
+import net.corda.v5.application.identity.Party
 import net.corda.v5.application.injection.CordaInject
 import net.corda.v5.application.services.IdentityService
 import net.corda.v5.application.services.json.JsonMarshallingService
@@ -30,6 +32,7 @@ import net.corda.v5.base.annotations.Suspendable
 import net.corda.v5.base.util.seconds
 import net.corda.v5.ledger.contracts.StateAndRef
 import net.corda.v5.ledger.services.NotaryLookupService
+import net.corda.v5.ledger.services.StatesToRecord
 import net.corda.v5.ledger.services.vault.IdentityStateAndRefPostProcessor
 import net.corda.v5.ledger.services.vault.StateStatus
 import net.corda.v5.ledger.transactions.SignedTransaction
@@ -121,7 +124,7 @@ class ConfidentialMoveFlow @JsonConstructor constructor(
             identityService.partyFromName(CordaX500Name.parse(observer))?.let {
                 // share confidential identities before sending
                 flowEngine.subFlow(SyncKeyMappingInitiator(it, notarisedTx.tx))
-                flowEngine.subFlow(SendTransactionFlow(flowMessaging.initiateFlow(it), notarisedTx))
+                flowEngine.subFlow(BroadcastTransactionFlow(notarisedTx, listOf(it)))
             }
         }
 
@@ -149,11 +152,42 @@ class ConfidentialMoveResponseFlow(private val counterPartySession: FlowSession)
 
                 // share the confidential identity used for the input state
                 flowEngine.subFlow(SyncKeyMappingInitiator(counterPartySession.counterparty, listOf(state.owner)))
-
-                transactionMappingService.toLedgerTransaction(stx, false)
             }
         }
         val txId = flowEngine.subFlow(signTransactionFlow).id
         flowEngine.subFlow(ReceiveFinalityFlow(counterPartySession, txId))
+    }
+}
+
+@InitiatingFlow
+class BroadcastTransactionFlow(
+    private val stx: SignedTransaction,
+    private val recipients: List<Party>
+) : Flow<Unit> {
+
+    @CordaInject
+    lateinit var flowMessaging: FlowMessaging
+
+    @CordaInject
+    lateinit var flowEngine: FlowEngine
+
+    @Suspendable
+    override fun call() {
+        for (recipient in recipients) {
+            val session = flowMessaging.initiateFlow(recipient)
+            flowEngine.subFlow(SendTransactionFlow(session, stx))
+        }
+    }
+}
+
+@InitiatedBy(BroadcastTransactionFlow::class)
+class BroadcastTransactionResponder(private val session: FlowSession) : Flow<Unit> {
+
+    @CordaInject
+    lateinit var flowEngine: FlowEngine
+
+    @Suspendable
+    override fun call() {
+        flowEngine.subFlow(ReceiveTransactionFlow(session, statesToRecord = StatesToRecord.ALL_VISIBLE))
     }
 }
