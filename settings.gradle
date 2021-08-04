@@ -7,8 +7,8 @@ pluginManagement {
         maven {
             url "$artifactoryContextUrl/corda-os-maven"
             credentials {
-                username = properties['cordaArtifactoryUsername'] ?: System.getenv('CORDA_ARTIFACTORY_USERNAME')
-                password = properties['cordaArtifactoryPassword'] ?: System.getenv('CORDA_ARTIFACTORY_PASSWORD')
+                username = settings.ext.find('cordaArtifactoryUsername') ?: System.getenv('CORDA_ARTIFACTORY_USERNAME')
+                password = settings.ext.find('cordaArtifactoryPassword') ?: System.getenv('CORDA_ARTIFACTORY_PASSWORD')
             }
         }
     }
