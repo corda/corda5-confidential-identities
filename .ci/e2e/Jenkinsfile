@@ -1,0 +1,132 @@
+def nameSpace = UUID.randomUUID().toString()
+
+pipeline {
+    agent {
+        docker {
+            // Our custom docker image
+            image 'build-zulu-openjdk:11'
+            label 'docker'
+            registryUrl 'https://engineering-docker.software.r3.com/'
+            registryCredentialsId 'artifactory-credentials'
+            // Used to mount storage from the host as a volume to persist the cache between builds
+            args '-v /tmp:/host_tmp'
+            // make sure build image is always fresh
+            alwaysPull true
+        }
+    }
+
+    environment {
+        ARTIFACTORY_CREDENTIALS = credentials('artifactory-credentials')
+        CORDA_ARTIFACTORY_USERNAME = "${env.ARTIFACTORY_CREDENTIALS_USR}"
+        CORDA_ARTIFACTORY_PASSWORD = "${env.ARTIFACTORY_CREDENTIALS_PSW}"
+        CORDA_USE_CACHE = "corda-remotes"
+        GRADLE_USER_HOME = "/host_tmp/gradle"
+        CORDA_CLI_USER_HOME="/tmp/corda-cli-home"
+        KUBECONFIG=credentials("e2e-tests-credentials")
+        ARTIFACTORY_URL="https://software.r3.com:443/artifactory"
+        NAMESPACE="ci-${nameSpace}"
+        E2E_TEST_NETWORK_NAME="${env.NAMESPACE}"
+        CPK_DIR="testing/build/e2eCPKs"
+    }
+
+    options {
+        buildDiscarder(logRotator(daysToKeepStr: '14', artifactDaysToKeepStr: '14'))
+        timeout(time: 30, unit: 'MINUTES')
+        timestamps()
+    }
+
+    stages {
+        stage('Prep') {
+            steps {
+                sh 'mkdir -p "${GRADLE_USER_HOME}"'
+                sh 'mkdir -p "${CORDA_CLI_USER_HOME}"'
+            }
+        }
+        stage('Build') {
+            steps {
+                sh './gradlew -s clean build'
+            }
+        }
+        stage('Gather CPKs') {
+            steps {
+                sh 'mkdir -p ${CPK_DIR}'
+
+                sh 'cp workflows/build/libs/*.cpk ${CPK_DIR}'
+                sh 'cp testing/cordapps/**/**/build/libs/*.cpk ${CPK_DIR}'
+
+                sh 'echo Building with CPKS:'
+                sh 'ls ${CPK_DIR}'
+            }
+        }
+        stage('Setup network') {
+            steps {
+                sh 'corda-cli network config k8s "${NAMESPACE}"'
+                sh 'corda-cli network deploy -n "${NAMESPACE}" -f testing/e2e/src/e2eTest/resources/smoke-tests-network.yaml | kubectl apply -f -'
+                sh 'corda-cli --stacktrace network wait -n "${NAMESPACE}" -t 20'
+                sh 'corda-cli package install -n "${NAMESPACE}" ${CPK_DIR}'
+            }
+        }
+        stage('Compile the tests') {
+            steps {
+                sh './gradlew compileE2eTestJava compileE2eTestKotlin'
+            }
+        }
+        stage('Wait for Network') {
+            steps {
+                sh 'corda-cli --stacktrace network wait -n "${NAMESPACE}" -t 20'
+            }
+        }
+        stage('Forward ports and run the tests') {
+            steps {
+                sh '''
+                    nohup corda-cli network forward -n "${NAMESPACE}" > forward.txt 2>&1 &
+                    procno=$! #remember process number started in background
+                    trap "kill -9 ${procno}" EXIT
+                    ./gradlew e2eTest
+                '''
+            }
+            post {
+                always {
+                    sh '''
+        for POD in $(kubectl get pods -l type=corda -o name --namespace="${NAMESPACE}" | cut -d'/' -f 2)
+        do
+          echo "${POD}"
+          kubectl --namespace="${NAMESPACE}" exec "${POD}" -- mkdir -p /home/corda/node
+          kubectl --namespace="${NAMESPACE}" exec "${POD}" -- sync
+          kubectl --namespace="${NAMESPACE}" exec "${POD}" -- rsync -a --inplace --exclude "*.jar" --exclude "*.tar.gz" --exclude "*.db" /opt/nodes /home/corda/node
+          kubectl --namespace="${NAMESPACE}" exec "${POD}" -- tar -czf /home/corda/"${POD}".tar.gz /home/corda/node
+          echo "copying /home/corda/${POD}.tar.gz to $WORKSPACE/$POD.tar.gz"
+          kubectl --namespace="${NAMESPACE}" cp "${POD}:/home/corda/${POD}.tar.gz" "${WORKSPACE}/${POD}.tar.gz"
+        done
+        '''
+                }
+            }
+        }
+    }
+    post {
+        success {
+            sh 'corda-cli network terminate -yrf -n "${NAMESPACE}"'
+        }
+        failure {
+            sh '''
+        for POD in $(kubectl get pods -o name --namespace="${NAMESPACE}" | cut -d'/' -f 2)
+        do
+          echo "Collection container logs for ${POD}"
+          kubectl logs ${POD} --all-containers --namespace="${NAMESPACE}" > "${WORKSPACE}/${POD}.stout.log"
+        done
+        '''
+            echo "You have 4hrs if you wish to connect to and triage '${env.NAMESPACE}'"
+            echo "For more info see: https://engineering.r3.com/engineering-central/how-we-work/build-logistics-and-tooling/build-and-test/test/eks-cluster-getting-started/"
+        }
+        cleanup {
+            junit allowEmptyResults: true, testResults: '**/test-results/e2eTest/TEST-*.xml'
+            archiveArtifacts artifacts: '**/test-results/e2eTest/TEST-*.xml', allowEmptyArchive: true, fingerprint: true
+            archiveArtifacts artifacts: 'forward.txt', allowEmptyArchive: true, fingerprint: true
+            archiveArtifacts artifacts: "*.tar.gz", allowEmptyArchive: true, fingerprint: true
+            archiveArtifacts artifacts: "*.stout.log", allowEmptyArchive: true, fingerprint: true
+            sh 'rm -f *.tar.gz'
+            sh 'rm -f *.stout.log'
+            sh 'rm -f forward.txt'
+        }
+    }
+}

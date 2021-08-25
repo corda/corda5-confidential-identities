@@ -1,0 +1,9 @@
+# Sample full network suitable for local use
+registry: engineering-docker.software.r3.com
+tag: 5.0.0-devpreview-rc04
+nodes:
+  alice:
+  bob:
+  caroline:
+  notary:
+    notary: true
