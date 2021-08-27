@@ -2,6 +2,7 @@ plugins {
     id 'net.corda.plugins.cordapp-cpk'
     id 'org.jetbrains.kotlin.jvm'
     id 'jacoco'
+    id 'com.r3.internal.gradle.plugins.r3Publish'
 }
 
 cordapp {

@@ -11,6 +11,17 @@ pluginManagement {
                 password = settings.ext.find('cordaArtifactoryPassword') ?: System.getenv('CORDA_ARTIFACTORY_PASSWORD')
             }
         }
+        maven {
+            url "$artifactoryContextUrl/engineering-tools-maven"
+            credentials {
+                username = settings.ext.find('cordaArtifactoryUsername') ?: System.getenv('CORDA_ARTIFACTORY_USERNAME')
+                password = settings.ext.find('cordaArtifactoryPassword') ?: System.getenv('CORDA_ARTIFACTORY_PASSWORD')
+            }
+            content {
+                includeGroupByRegex 'com\\.r3\\.internal(\\..*)?'
+            }
+        }
+
     }
 
     plugins {
@@ -23,6 +34,7 @@ pluginManagement {
         id 'org.jetbrains.kotlin.plugin.allopen' version kotlin_version
         id 'com.jfrog.artifactory' version jfrogArtifactoryPluginVersion
         id 'io.gitlab.arturbosch.detekt' version detektVersion
+        id 'com.r3.internal.gradle.plugins.r3Publish' version internalPublishVersion
     }
 }
 
