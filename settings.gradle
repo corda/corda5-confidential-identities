@@ -34,6 +34,7 @@ pluginManagement {
         id 'org.jetbrains.kotlin.plugin.allopen' version kotlin_version
         id 'com.jfrog.artifactory' version jfrogArtifactoryPluginVersion
         id 'io.gitlab.arturbosch.detekt' version detektVersion
+        id 'com.r3.internal.gradle.plugins.r3ArtifactoryPublish' version internalPublishVersion
         id 'com.r3.internal.gradle.plugins.r3Publish' version internalPublishVersion
     }
 }

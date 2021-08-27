@@ -7,6 +7,8 @@ plugins {
     id 'io.gitlab.arturbosch.detekt'
     id 'com.jfrog.artifactory'
     id 'jacoco'
+    id 'com.r3.internal.gradle.plugins.r3ArtifactoryPublish' apply true
+    id 'com.r3.internal.gradle.plugins.r3Publish' apply false
 }
 
 def revision = {
