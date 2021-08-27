@@ -5,6 +5,8 @@ plugins {
     id 'com.r3.internal.gradle.plugins.r3Publish'
 }
 
+description = "Confidential Identities Workflows"
+
 cordapp {
     targetPlatformVersion corda_platform_version.toInteger()
 
