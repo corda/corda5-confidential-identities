@@ -106,8 +106,6 @@ configure(publishProjects) { subproject ->
                 attributes("Corda-Platform-Version": corda_platform_version)
                 attributes("Corda-Revision": revision)
                 attributes("Automatic-Module-Name": "${confidential_id_release_group}.${project.name.replace('-', '.')}")
-                // NOTE: this needs to be reverted to a URL with the version once the URL structure has been defined.
-                //attributes("Corda-Docs-Link": "https://docs.corda.net/docs/corda-os/$cordaVersion")
                 attributes("Corda-Docs-Link": "https://docs.r3.com/")
                 attributes("Corda-License": licenseUrl)
             }
@@ -121,6 +119,7 @@ configure(publishProjects) { subproject ->
     publishing {
         publications {
             create(subproject.name, MavenPublication) {
+                evaluationDependsOn(subproject.path)
                 groupId subproject.group
                 artifactId subproject.name
 
