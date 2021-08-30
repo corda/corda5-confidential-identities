@@ -135,7 +135,26 @@ configure(publishProjects) { subproject ->
                 }
 
                 pom {
+                    name = subproject.name
                     description = subproject.description
+                    url = 'https://github.com/corda/corda5-confidential-identities'
+                    licenses {
+                        license {
+                            name = licenseName
+                            url = licenseUrl
+                            distribution = licenseUrl
+                        }
+                    }
+                    developers {
+                        developer {
+                            id = 'R3'
+                            name = 'R3'
+                            email = 'dev@corda.net'
+                        }
+                    }
+                    scm {
+                        url = 'https://github.com/corda/corda5-confidential-identities'
+                    }
                 }
             }
         }
