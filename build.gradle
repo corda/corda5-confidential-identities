@@ -34,11 +34,7 @@ subprojects {
     group confidential_id_release_group
 
     repositories {
-        mavenLocal()
         mavenCentral()
-        maven { url "$artifactoryContextUrl/corda-lib" }
-        maven { url "$artifactoryContextUrl/corda-lib-dev" }
-        maven { url "$artifactoryContextUrl/corda-releases" }
         maven { url "$artifactoryContextUrl/corda-dependencies" }
         //needed for C5 binaries
         maven {
