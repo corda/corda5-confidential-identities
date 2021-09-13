@@ -1,6 +1,6 @@
 # Sample full network suitable for local use
 registry: engineering-docker.software.r3.com
-tag: 5.0.0-devpreview-rc05
+tag: 5.0.0-devpreview-rc07
 nodes:
   alice:
   bob:
