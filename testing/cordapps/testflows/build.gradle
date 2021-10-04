@@ -4,11 +4,7 @@ plugins {
 }
 
 dependencies {
-    cordaProvided "$corda_release_group:corda-ledger:$corda_release_version"
     cordaProvided "$corda_release_group:corda-application:$corda_release_version"
-
-    cordapp "$corda_release_group:corda-flows:$corda_release_version"
-    cordapp project(":testing:cordapps:confidential-exchange:contracts")
     cordapp project(":ci-workflows")
 }
 
@@ -16,12 +12,12 @@ cordapp {
     targetPlatformVersion corda_platform_version.toInteger()
     minimumPlatformVersion corda_platform_version.toInteger()
     workflow {
-        name "Corda Confidential Identities - Confidential Exchange Workflows"
+        name "Corda Simple Test Workflows"
         versionId 1
         vendor "R3"
     }
 }
 
 tasks.named('jar', Jar) {
-    archiveBaseName = 'corda-ci-confidentialexchange-workflows'
+    archiveBaseName = 'corda-ci-test-workflows'
 }

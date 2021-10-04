@@ -33,13 +33,13 @@ internal fun FlowStarterRPCOps.runFlow(flowClass: KClass<*>, parameters: Map<Str
 	return response
 }
 
-internal fun FlowStarterRPCOps.getFlowOutcome(response: RpcStartFlowResponse): RpcFlowOutcomeResponse {
+internal fun FlowStarterRPCOps.getFlowOutcome(response: RpcStartFlowResponse, resultStatus: RpcFlowStatus = RpcFlowStatus.COMPLETED): RpcFlowOutcomeResponse {
 	var result: RpcFlowOutcomeResponse
 	do {
 		result = getFlowOutcome(response.flowId.uuid.toString())
 	} while (result.status == RpcFlowStatus.RUNNING)
 
-	assertThat(RpcFlowStatus.COMPLETED).isEqualTo(result.status)
+	assertThat(resultStatus).isEqualTo(result.status)
 
 	return result
 }

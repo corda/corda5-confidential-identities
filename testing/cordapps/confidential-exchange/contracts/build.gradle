@@ -9,7 +9,7 @@ dependencies {
 }
 
 cordapp {
-    targetPlatformVersion corda_platform_version as Integer
+    targetPlatformVersion corda_platform_version.toInteger()
     minimumPlatformVersion corda_platform_version.toInteger()
     contract {
         name "Corda Confidential Identities - Confidential Exchange Contracts"

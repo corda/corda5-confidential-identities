@@ -26,6 +26,7 @@ dependencies {
 
     e2eTestImplementation project(":testing:cordapps:confidential-exchange:workflows")
     e2eTestImplementation project(":testing:cordapps:confidential-exchange:contracts")
+    e2eTestImplementation project(":testing:cordapps:testflows")
     e2eTestImplementation project(":ci-workflows")
 }
 tasks.register('e2eTest', Test) {

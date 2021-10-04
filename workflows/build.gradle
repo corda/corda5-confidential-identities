@@ -50,10 +50,15 @@ dependencies {
     cordaProvided "$corda_release_group:corda-application:$corda_release_version"
     cordaProvided "$corda_release_group:corda-ledger:$corda_release_version"
     cordaProvided "$corda_release_group:corda-crypto-api:$corda_release_version"
+    cordaProvided "$corda_release_group:corda-flow-test-utils:$corda_release_version"
 
     testImplementation "org.assertj:assertj-core:$assertj_version"
     testImplementation "org.junit.jupiter:junit-jupiter-api:$junit_version"
     testImplementation "io.mockk:mockk:$mockkVersion"
+    testImplementation "org.mockito:mockito-core:$mockitoVersion"
+    testImplementation("com.nhaarman:mockito-kotlin:$mockitoKotlinVersion") {
+        exclude group:"mockito-core"
+    }
     testRuntimeOnly "org.junit.jupiter:junit-jupiter-engine:$junit_version"
 }
 

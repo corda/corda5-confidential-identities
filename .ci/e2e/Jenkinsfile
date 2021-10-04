@@ -53,6 +53,7 @@ pipeline {
 
                 sh 'cp workflows/build/libs/*.cpk ${CPK_DIR}'
                 sh 'cp testing/cordapps/**/**/build/libs/*.cpk ${CPK_DIR}'
+                sh 'cp testing/cordapps/**/build/libs/*.cpk ${CPK_DIR}'
 
                 sh 'echo Building with CPKS:'
                 sh 'ls ${CPK_DIR}'

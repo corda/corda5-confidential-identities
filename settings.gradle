@@ -49,5 +49,6 @@ include 'testing:cordapps'
 include 'testing:cordapps:confidential-exchange'
 include 'testing:cordapps:confidential-exchange:contracts'
 include 'testing:cordapps:confidential-exchange:workflows'
+include 'testing:cordapps:testflows'
 
 include 'testing:e2e'
