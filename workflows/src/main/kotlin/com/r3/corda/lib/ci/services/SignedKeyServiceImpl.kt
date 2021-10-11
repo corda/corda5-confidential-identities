@@ -79,5 +79,9 @@ class SignedKeyServiceImpl : SignedKeyService {
                 ex
             )
         }
+        if (signedKeyForAccount.signedChallengeResponse.sig.by != signedKeyForAccount.publicKey) {
+            throw SignatureException("The public key used to sign the challenge response is not the same key " +
+                    "returned as part of the SignedKeyForAccount")
+        }
     }
 }
