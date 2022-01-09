@@ -26,6 +26,7 @@ pipeline {
         ARTIFACTORY_URL="https://software.r3.com:443/artifactory"
         NAMESPACE="ci-${nameSpace}"
         E2E_TEST_NETWORK_NAME="${env.NAMESPACE}"
+	    CORDA_CLI_COMMAND="${CORDA_CLI_USER_HOME}/bin/corda-cli"
         CPK_DIR="testing/build/e2eCPKs"
     }
 
@@ -42,6 +43,15 @@ pipeline {
                 sh 'mkdir -p "${CORDA_CLI_USER_HOME}"'
             }
         }
+     stage('Replace CLI with DP1 version') {
+         steps {
+               echo "Downloading the corda-cli"
+               sh "curl -SLf -u '${CORDA_ARTIFACTORY_USERNAME}:${CORDA_ARTIFACTORY_PASSWORD}' https://software.r3.com/artifactory/engineering-tools-maven/net/corda/cli/corda-cli-developer/[RELEASE]/corda-cli-developer-[RELEASE].tar\\;source.branch+=release-1.0.1-DevPreview --output ${CORDA_CLI_USER_HOME}/corda-cli.tar"
+		       sh "rm -rf ${CORDA_CLI_USER_HOME}/corda-cli && mkdir ${CORDA_CLI_USER_HOME}/corda-cli"
+               sh "tar -C ${CORDA_CLI_USER_HOME} --strip 1 -xf ${CORDA_CLI_USER_HOME}/corda-cli.tar"
+               sh "${CORDA_CLI_COMMAND} --version"
+              }
+         }        
         stage('Build') {
             steps {
                 sh './gradlew -s clean build'
@@ -61,10 +71,10 @@ pipeline {
         }
         stage('Setup network') {
             steps {
-                sh 'corda-cli network config k8s "${NAMESPACE}"'
-                sh 'corda-cli network deploy -n "${NAMESPACE}" -f testing/e2e/src/e2eTest/resources/ci-smoke-tests-network.yaml | kubectl apply -f -'
-                sh 'corda-cli --stacktrace network wait -n "${NAMESPACE}" -t 20'
-                sh 'corda-cli package install -n "${NAMESPACE}" ${CPK_DIR}'
+                sh '"${CORDA_CLI_COMMAND}" network config k8s "${NAMESPACE}"'
+                sh '"${CORDA_CLI_COMMAND}" network deploy -n "${NAMESPACE}" -f testing/e2e/src/e2eTest/resources/ci-smoke-tests-network.yaml | kubectl apply -f -'
+                sh '"${CORDA_CLI_COMMAND}" --stacktrace network wait -n "${NAMESPACE}" -t 20'
+                sh '"${CORDA_CLI_COMMAND}" package install -n "${NAMESPACE}" ${CPK_DIR}'
             }
         }
         stage('Compile the tests') {
@@ -74,13 +84,13 @@ pipeline {
         }
         stage('Wait for Network') {
             steps {
-                sh 'corda-cli --stacktrace network wait -n "${NAMESPACE}" -t 20'
+                sh '"${CORDA_CLI_COMMAND}" --stacktrace network wait -n "${NAMESPACE}" -t 20'
             }
         }
         stage('Forward ports and run the tests') {
             steps {
                 sh '''
-                    nohup corda-cli network forward -n "${NAMESPACE}" > forward.txt 2>&1 &
+                    nohup "${CORDA_CLI_COMMAND}" network forward -n "${NAMESPACE}" > forward.txt 2>&1 &
                     procno=$! #remember process number started in background
                     trap "kill -9 ${procno}" EXIT
                     ./gradlew e2eTest
@@ -106,7 +116,7 @@ pipeline {
     }
     post {
         success {
-            sh 'corda-cli network terminate -yrf -n "${NAMESPACE}"'
+            sh '"${CORDA_CLI_COMMAND}" network terminate -yrf -n "${NAMESPACE}"'
         }
         failure {
             sh '''
