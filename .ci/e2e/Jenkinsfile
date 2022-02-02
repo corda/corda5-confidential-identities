@@ -46,8 +46,8 @@ pipeline {
      stage('Replace CLI with DP1 version') {
          steps {
                echo "Downloading the corda-cli"
-               sh "curl -SLf -u '${CORDA_ARTIFACTORY_USERNAME}:${CORDA_ARTIFACTORY_PASSWORD}' https://software.r3.com/artifactory/engineering-tools-maven/net/corda/cli/corda-cli-developer/[RELEASE]/corda-cli-developer-[RELEASE].tar\\;source.branch+=release-1.0.1-DevPreview --output ${CORDA_CLI_USER_HOME}/corda-cli.tar"
-		       sh "rm -rf ${CORDA_CLI_USER_HOME}/corda-cli && mkdir ${CORDA_CLI_USER_HOME}/corda-cli"
+	       sh "curl -SLf -u '${CORDA_ARTIFACTORY_USERNAME}:${CORDA_ARTIFACTORY_PASSWORD}' https://software.r3.com/artifactory/engineering-tools-maven/net/corda/cli/corda-cli-developer/1.0.0-DevPreview/corda-cli-developer-1.0.0-DevPreview.tar --output ${CORDA_CLI_USER_HOME}/corda-cli.tar"
+	       sh "rm -rf ${CORDA_CLI_USER_HOME}/corda-cli && mkdir ${CORDA_CLI_USER_HOME}/corda-cli"
                sh "tar -C ${CORDA_CLI_USER_HOME} --strip 1 -xf ${CORDA_CLI_USER_HOME}/corda-cli.tar"
                sh "${CORDA_CLI_COMMAND} --version"
               }
